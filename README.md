@@ -2,6 +2,9 @@
 
 This is the comprehensive **Admin Dashboard Application** designed for managing shareholder activities, investments, dividends, and system settings. It acts as the central control unit for the Aung Partner platform, syncing seamlessly with the customer-facing mobile application.
 
+mail - aungpartner35@gmail.com
+password - superuser
+
 ---
 
 ##  Tech Stack
