@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from './Header';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'http://130.94.23.117:5000';
+const API_BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'http://130.94.21.185:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -41,13 +41,46 @@ function Settings() {
     nrc: '',
     dateOfBirth: '',
     joinedDate: '',
-    profileImage: '',     // will store filename (e.g., "1780030451109.webp")
+    profileImage: '',    
   });
   const [tempProfile, setTempProfile] = useState({ ...adminProfile });
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
 
+  // ========== PASSCODE STATUS ==========
+  const [hasPasscode, setHasPasscode] = useState(false);
+
+  // ========== PASSWORD MODAL STATE ==========
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // ========== PASSCODE MODALS ==========
+  const [showCreatePasscodeModal, setShowCreatePasscodeModal] = useState(false);
+  const [showChangePasscodeModal, setShowChangePasscodeModal] = useState(false);
+  const [currentPasscodeForCreate, setCurrentPasscodeForCreate] = useState('');
+  const [newPasscode, setNewPasscode] = useState('');
+  const [confirmPasscode, setConfirmPasscode] = useState('');
+  const [currentPasscodeForHeader, setCurrentPasscodeForHeader] = useState('');
+  
+  // Eye toggle states
+  const [showCurrentPasscode, setShowCurrentPasscode] = useState(false);
+  const [showNewPasscode, setShowNewPasscode] = useState(false);
+  const [showConfirmPasscode, setShowConfirmPasscode] = useState(false);
+  const [passcodeLoading, setPasscodeLoading] = useState(false);
+
+  // ============================================================
+  // ✅ API ENDPOINTS
+  // ============================================================
+  // Password အတွက် URL: /auth/admin/change/password/{id}
+  const PASSWORD_CHANGE_URL = '/auth/admin/change/password';
+  const PASSCODE_CHECK_URL = '/api/get/passcode';
+  const PASSCODE_CREATE_URL = '/api/create/passcode';
+  const PASSCODE_CHANGE_URL = '/api/change/passcode';
 
   const getCurrentUserId = () => {
     const storedUser = localStorage.getItem('user') || localStorage.getItem('profile');
@@ -96,6 +129,7 @@ function Settings() {
     backupSize: '245 MB',
   });
 
+  // ========== PROFILE FUNCTIONS ==========
   const loadProfileFromStorage = () => {
     const storedUser = localStorage.getItem('user') || localStorage.getItem('profile');
     if (storedUser) {
@@ -109,7 +143,7 @@ function Settings() {
           nrc: user.nrc || '',
           dateOfBirth: user.dateOfBirth || user.date_of_birth || '',
           joinedDate: user.created_at ? new Date(user.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          profileImage: user.profile_image || user.avatar || '',   // store filename only
+          profileImage: user.profile_image || user.avatar || '',   
         };
         setAdminProfile(profileData);
         setTempProfile(profileData);
@@ -137,7 +171,6 @@ function Settings() {
     setTempProfile(fallback);
   };
 
-  // ========== UPDATE PROFILE TEXT FIELDS ==========
   const updateProfileAPI = async (updatedData) => {
     const userId = getCurrentUserId();
     const payload = {
@@ -153,7 +186,6 @@ function Settings() {
     throw new Error(response.data?.message || 'Update failed');
   };
 
-  // ========== UPLOAD PROFILE IMAGE ==========
   const uploadProfileImage = async (file) => {
     const userId = getCurrentUserId();
     const formData = new FormData();
@@ -179,17 +211,14 @@ function Settings() {
     setProfileImageFile(file);
   };
 
- 
   const saveProfileImage = async () => {
     if (!profileImageFile) return;
     setUploadingImage(true);
     try {
       const newImageFilename = await uploadProfileImage(profileImageFile);
       if (newImageFilename) {
-        
         setAdminProfile(prev => ({ ...prev, profileImage: newImageFilename }));
         setTempProfile(prev => ({ ...prev, profileImage: newImageFilename }));
-        
         const storedUser = localStorage.getItem('user') || localStorage.getItem('profile');
         if (storedUser) {
           const user = JSON.parse(storedUser);
@@ -198,17 +227,14 @@ function Settings() {
         }
         setShowSuccessMessage(true);
         setTimeout(() => setShowSuccessMessage(false), 3000);
-        
         window.dispatchEvent(new CustomEvent('shareholderRefresh'));
         window.dispatchEvent(new CustomEvent('profileUpdate'));
       } else {
-        
         console.warn('Upload succeeded but no filename returned');
       }
       setProfileImageFile(null);
     } catch (error) {
       console.error('Upload error:', error);
-      
       const base64Image = tempProfile.profileImage;
       if (base64Image && base64Image.startsWith('data:image')) {
         const storedUser = localStorage.getItem('user') || localStorage.getItem('profile');
@@ -230,15 +256,11 @@ function Settings() {
     }
   };
 
-  
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
-     
       await updateProfileAPI(tempProfile);
-      
       setAdminProfile(prev => ({ ...prev, ...tempProfile }));
-      
       const storedUser = localStorage.getItem('user') || localStorage.getItem('profile');
       if (storedUser) {
         const user = JSON.parse(storedUser);
@@ -253,20 +275,18 @@ function Settings() {
         }
         localStorage.setItem('user', JSON.stringify(user));
       }
-      
       if (profileImageFile) {
         await saveProfileImage();
-      } else {
-        
-        window.dispatchEvent(new CustomEvent('shareholderRefresh'));
-        window.dispatchEvent(new CustomEvent('profileUpdate'));
       }
+      window.dispatchEvent(new CustomEvent('shareholderRefresh'));
+      window.dispatchEvent(new CustomEvent('profileUpdate'));
       setIsEditingProfile(false);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
+      alert('Profile updated successfully!');
     } catch (error) {
-      console.error('Profile text update failed', error);
-      alert('Failed to update profile: ' + (error.response?.data?.message || error.message));
+      console.error('Profile update failed', error);
+      alert('Failed to update: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -283,7 +303,188 @@ function Settings() {
     setTempProfile((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ============================================================
+  // ✅ PASSWORD CHANGE (PUT /auth/admin/change/password/:id)
+  //    Body: { "password": "...", "confirmPassword": "..." }
+  //    Response: { "success": true, "message": "Password Change Success!" }
+  // ============================================================
+  const changePassword = async (userId, password, confirmPassword) => {
+    const url = `${PASSWORD_CHANGE_URL}/${userId}`; // /auth/admin/change/password/1
+    try {
+      const response = await api.put(url, { password, confirmPassword });
+      if (response.data?.success === true) return true;
+      throw new Error(response.data?.message || 'Password change failed');
+    } catch (error) {
+      console.error('❌ Password API call failed:', error);
+      throw error;
+    }
+  };
 
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      alert('Password and Confirm Password do not match.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      alert('Password must be at least 6 characters.');
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const userId = getCurrentUserId();
+      await changePassword(userId, newPassword, confirmPassword);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+      alert('Password changed successfully!');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+      setShowPasswordModal(false);
+    } catch (error) {
+      alert(`❌ Failed to change password. ${error.response?.data?.message || error.message}`);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // ============================================================
+  // ✅ PASSCODE - CHECK (GET /api/get/passcode)
+  // ============================================================
+  const checkPasscodeExists = async () => {
+    try {
+      const response = await api.get(PASSCODE_CHECK_URL);
+      if (response.data?.success === true) {
+        setHasPasscode(response.data.exists === true);
+      } else {
+        setHasPasscode(false);
+      }
+    } catch (error) {
+      if (error.response?.status === 404) {
+        setHasPasscode(false);
+        return;
+      }
+      console.warn('Passcode check failed, assuming no passcode exists.', error);
+      setHasPasscode(false);
+    }
+  };
+
+  // ============================================================
+  // ✅ PASSCODE - CREATE (POST /api/create/passcode)
+  // ============================================================
+  const createPasscode = async (passcode, confirmPasscode, currentPasscode) => {
+    try {
+      const response = await api.post(
+        PASSCODE_CREATE_URL,
+        { passcode, confirmPasscode },
+        {
+          headers: { 'x-passcode': currentPasscode }
+        }
+      );
+      if (response.data?.success === true) return true;
+      throw new Error(response.data?.message || 'Passcode creation failed');
+    } catch (error) {
+      console.error('❌ Passcode create API call failed:', error.response?.data);
+      throw error;
+    }
+  };
+
+  const handleCreatePasscode = async () => {
+    if (!currentPasscodeForCreate || !/^\d{6}$/.test(currentPasscodeForCreate)) {
+      alert('Please enter your current 6-digit passcode.');
+      return;
+    }
+    if (newPasscode !== confirmPasscode) {
+      alert('New Passcode and Confirm Passcode do not match.');
+      return;
+    }
+    if (!/^\d{6}$/.test(newPasscode)) {
+      alert('New Passcode must be exactly 6 digits (numbers only).');
+      return;
+    }
+    setPasscodeLoading(true);
+    try {
+      await createPasscode(newPasscode, confirmPasscode, currentPasscodeForCreate);
+      
+      localStorage.setItem('passcode', newPasscode);
+      
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+      alert('Passcode created successfully!');
+      setHasPasscode(true);
+      setCurrentPasscodeForCreate('');
+      setNewPasscode('');
+      setConfirmPasscode('');
+      setShowCurrentPasscode(false);
+      setShowNewPasscode(false);
+      setShowConfirmPasscode(false);
+      setShowCreatePasscodeModal(false);
+    } catch (error) {
+      alert(`❌ Failed to create passcode. ${error.response?.data?.message || error.message}`);
+    } finally {
+      setPasscodeLoading(false);
+    }
+  };
+
+  // ============================================================
+  // ✅ PASSCODE - CHANGE (PUT /api/change/passcode/{userId})
+  // ============================================================
+  const changePasscode = async (userId, passcode, confirmPasscode, currentPasscode) => {
+    const url = `${PASSCODE_CHANGE_URL}/${userId}`;
+    try {
+      const response = await api.put(
+        url,
+        { passcode, confirmPasscode },
+        {
+          headers: { 'x-passcode': currentPasscode }
+        }
+      );
+      if (response.data?.success === true) return true;
+      throw new Error(response.data?.message || 'Passcode change failed');
+    } catch (error) {
+      console.error('❌ Passcode API call failed:', error.response?.data);
+      throw error;
+    }
+  };
+
+  const handleChangePasscode = async () => {
+    if (!currentPasscodeForHeader || !/^\d{6}$/.test(currentPasscodeForHeader)) {
+      alert('Please enter your current 6-digit passcode.');
+      return;
+    }
+    if (newPasscode !== confirmPasscode) {
+      alert('New Passcode and Confirm Passcode do not match.');
+      return;
+    }
+    if (!/^\d{6}$/.test(newPasscode)) {
+      alert('New Passcode must be exactly 6 digits (numbers only).');
+      return;
+    }
+    setPasscodeLoading(true);
+    try {
+      const userId = getCurrentUserId();
+      await changePasscode(userId, newPasscode, confirmPasscode, currentPasscodeForHeader);
+      
+      localStorage.setItem('passcode', newPasscode);
+      
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+      alert('Passcode changed successfully!');
+      setCurrentPasscodeForHeader('');
+      setNewPasscode('');
+      setConfirmPasscode('');
+      setShowCurrentPasscode(false);
+      setShowNewPasscode(false);
+      setShowConfirmPasscode(false);
+      setShowChangePasscodeModal(false);
+    } catch (error) {
+      alert(`❌ Failed to change passcode. ${error.response?.data?.message || error.message}`);
+    } finally {
+      setPasscodeLoading(false);
+    }
+  };
+
+  // ========== CONTACT SETTINGS ==========
   const fetchContactSettings = async () => {
     setLoading(true);
     try {
@@ -412,7 +613,7 @@ function Settings() {
     setIsEditingGeneral(false);
   };
 
-  // ========== TERMS & CONDITION  ==========
+  // ========== TERMS & CONDITION ==========
   const fetchTerms = async () => {
     setLoading(true);
     try {
@@ -552,6 +753,7 @@ function Settings() {
     loadProfileFromStorage();
     fetchContactSettings();
     fetchTerms();
+    checkPasscodeExists();
   }, []);
 
   const handleResetSettings = () => setShowResetConfirm(true);
@@ -573,11 +775,9 @@ function Settings() {
     </label>
   );
 
-  
   const getDisplayImageUrl = (imageValue) => {
     if (!imageValue) return null;
     if (imageValue.startsWith('data:') || imageValue.startsWith('http')) return imageValue;
-    
     return `/uploads/${imageValue}`;
   };
 
@@ -592,7 +792,6 @@ function Settings() {
         </div>
       )}
 
-      
       {showResetConfirm && (
         <div className="modal-overlay" onClick={() => setShowResetConfirm(false)}>
           <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
@@ -650,8 +849,332 @@ function Settings() {
         </div>
       )}
 
+      {/* ====== CHANGE PASSWORD MODAL ====== */}
+      {showPasswordModal && (
+        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+          <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2><i className="bi bi-lock-fill"></i> Change Password</h2>
+              <button className="close-btn" onClick={() => setShowPasswordModal(false)}><i className="bi bi-x-lg"></i></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label>New Password</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="form-control"
+                    placeholder="Enter new password (min 6 chars)"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      color: 'var(--text-color)',
+                      opacity: 0.7,
+                      padding: '4px 8px'
+                    }}
+                  >
+                    <i className={showPassword ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
+                  </button>
+                </div>
+              </div>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label>Confirm New Password</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="form-control"
+                    placeholder="Re-enter new password"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      color: 'var(--text-color)',
+                      opacity: 0.7,
+                      padding: '4px 8px'
+                    }}
+                  >
+                    <i className={showConfirmPassword ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button className="discard-btn" onClick={() => setShowPasswordModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={handleChangePassword} disabled={passwordLoading}>
+                {passwordLoading ? 'Changing...' : 'Change Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== CREATE PASSCODE MODAL ====== */}
+      {showCreatePasscodeModal && (
+        <div className="modal-overlay" onClick={() => setShowCreatePasscodeModal(false)}>
+          <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2><i className="bi bi-shield-lock-fill"></i> Create Passcode</h2>
+              <button className="close-btn" onClick={() => setShowCreatePasscodeModal(false)}><i className="bi bi-x-lg"></i></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label>Current Passcode <span style={{ color: 'red' }}>*</span></label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type={showCurrentPasscode ? "text" : "password"}
+                    maxLength="6"
+                    value={currentPasscodeForCreate}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setCurrentPasscodeForCreate(value);
+                    }}
+                    className="form-control"
+                    placeholder="Enter current 6-digit passcode"
+                    style={{ flex: 1 }}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPasscode(!showCurrentPasscode)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      color: 'var(--text-color)',
+                      opacity: 0.7,
+                      padding: '4px 8px'
+                    }}
+                  >
+                    <i className={showCurrentPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                <label>New Passcode (6-digit number)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type={showNewPasscode ? "text" : "password"}
+                    maxLength="6"
+                    value={newPasscode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setNewPasscode(value);
+                    }}
+                    className="form-control"
+                    placeholder="Enter new 6-digit passcode"
+                    style={{ flex: 1 }}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPasscode(!showNewPasscode)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      color: 'var(--text-color)',
+                      opacity: 0.7,
+                      padding: '4px 8px'
+                    }}
+                  >
+                    <i className={showNewPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label>Confirm New Passcode</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type={showConfirmPasscode ? "text" : "password"}
+                    maxLength="6"
+                    value={confirmPasscode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setConfirmPasscode(value);
+                    }}
+                    className="form-control"
+                    placeholder="Re-enter passcode"
+                    style={{ flex: 1 }}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPasscode(!showConfirmPasscode)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      color: 'var(--text-color)',
+                      opacity: 0.7,
+                      padding: '4px 8px'
+                    }}
+                  >
+                    <i className={showConfirmPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button className="discard-btn" onClick={() => setShowCreatePasscodeModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={handleCreatePasscode} disabled={passcodeLoading}>
+                {passcodeLoading ? 'Creating...' : 'Create Passcode'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== CHANGE PASSCODE MODAL ====== */}
+      {showChangePasscodeModal && (
+        <div className="modal-overlay" onClick={() => setShowChangePasscodeModal(false)}>
+          <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2><i className="bi bi-shield-lock-fill"></i> Change Passcode</h2>
+              <button className="close-btn" onClick={() => setShowChangePasscodeModal(false)}><i className="bi bi-x-lg"></i></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label>Current Passcode (6-digit number)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type={showCurrentPasscode ? "text" : "password"}
+                    maxLength="6"
+                    value={currentPasscodeForHeader}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setCurrentPasscodeForHeader(value);
+                    }}
+                    className="form-control"
+                    placeholder="Enter current 6-digit passcode"
+                    style={{ flex: 1 }}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPasscode(!showCurrentPasscode)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      color: 'var(--text-color)',
+                      opacity: 0.7,
+                      padding: '4px 8px'
+                    }}
+                  >
+                    <i className={showCurrentPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                <label>New Passcode (6-digit number)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type={showNewPasscode ? "text" : "password"}
+                    maxLength="6"
+                    value={newPasscode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setNewPasscode(value);
+                    }}
+                    className="form-control"
+                    placeholder="Enter new 6-digit passcode"
+                    style={{ flex: 1 }}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPasscode(!showNewPasscode)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      color: 'var(--text-color)',
+                      opacity: 0.7,
+                      padding: '4px 8px'
+                    }}
+                  >
+                    <i className={showNewPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label>Confirm New Passcode</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type={showConfirmPasscode ? "text" : "password"}
+                    maxLength="6"
+                    value={confirmPasscode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setConfirmPasscode(value);
+                    }}
+                    className="form-control"
+                    placeholder="Re-enter new passcode"
+                    style={{ flex: 1 }}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPasscode(!showConfirmPasscode)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.2rem',
+                      color: 'var(--text-color)',
+                      opacity: 0.7,
+                      padding: '4px 8px'
+                    }}
+                  >
+                    <i className={showConfirmPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button className="discard-btn" onClick={() => setShowChangePasscodeModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={handleChangePasscode} disabled={passcodeLoading}>
+                {passcodeLoading ? 'Changing...' : 'Change Passcode'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="settings-two-columns">
-       
+        {/* LEFT - PROFILE CARD */}
         <div className="admin-profile-card">
           <div className="profile-header">
             <div className="profile-image-section">
@@ -767,13 +1290,27 @@ function Settings() {
               </button>
             </div>
           ) : (
-            <button className="edit-profile-btn" onClick={() => setIsEditingProfile(true)}>
-              <i className="bi bi-pencil-square"></i> Edit Profile
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button className="edit-profile-btn" onClick={() => setIsEditingProfile(true)}>
+                <i className="bi bi-pencil-square"></i> Edit Profile
+              </button>
+              <button className="edit-profile-btn" style={{ background: '#0d6efd', marginTop: '0' }} onClick={() => setShowPasswordModal(true)}>
+                <i className="bi bi-lock-fill"></i> Change Password
+              </button>
+              {!hasPasscode ? (
+                <button className="edit-profile-btn" style={{ background: '#28a745', marginTop: '0' }} onClick={() => setShowCreatePasscodeModal(true)}>
+                  <i className="bi bi-plus-circle-fill"></i> Create Passcode
+                </button>
+              ) : (
+                <button className="edit-profile-btn" style={{ background: '#6f42c1', marginTop: '0' }} onClick={() => setShowChangePasscodeModal(true)}>
+                  <i className="bi bi-shield-lock-fill"></i> Change Passcode
+                </button>
+              )}
+            </div>
           )}
         </div>
 
-        
+        {/* RIGHT - SETTINGS TABS */}
         <div className="settings-right-column">
           <div className="settings-tabs-container">
             <div className="settings-tabs">
@@ -790,7 +1327,7 @@ function Settings() {
           </div>
 
           <div className="settings-content">
-            
+            {/* GENERAL TAB */}
             {activeTab === 'general' && (
               <div className="settings-section">
                 <h2 className="section-title"><i className="bi bi-telephone-fill"></i> Contact Settings</h2>
@@ -833,6 +1370,7 @@ function Settings() {
               </div>
             )}
 
+            {/* TERMS TAB */}
             {activeTab === 'terms' && (
               <div className="settings-section">
                 <h2 className="section-title"><i className="bi bi-file-text-fill"></i> Terms & Condition</h2>
@@ -873,6 +1411,7 @@ function Settings() {
               </div>
             )}
 
+            {/* BACKUP TAB */}
             {activeTab === 'backup' && (
               <div className="settings-section">
                 <h2 className="section-title"><i className="bi bi-database-fill"></i> Backup Settings</h2>

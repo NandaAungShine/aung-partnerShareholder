@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from './Header';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'http://130.94.23.117:5000';
+const API_BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'http://130.94.21.185:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -77,14 +77,12 @@ function ShareholderTrade() {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
   };
 
-  // Date display only - no picker interaction
   const apiToDisplayDate = (apiDate) => {
     if (!apiDate) return '';
     const [year, month, day] = apiDate.split('-');
     return `${day}/${month}/${year}`;
   };
 
-  // No longer used for picking, but keep for initial display
   const handleNativeDateChange = (e) => {
     // Disabled – do nothing
   };
@@ -545,25 +543,25 @@ function ShareholderTrade() {
       share_quantity: totalShares,
       price_per_share: priceToKeep,
       total_investment: totalInvestment,
-      passcode: Number(passcodeNum),
     };
 
     if (hasExisting) {
-      await api.put(`/api/share/update/${existing.shareId}`, payload);
+      await api.put(`/api/share/update/${existing.shareId}`, payload, {
+        headers: { 'x-passcode': Number(passcodeNum) }
+      });
     } else {
       const createPayload = { shareholder_id: shareholderId, ...payload };
-      await api.post('/api/share/create', createPayload);
+      await api.post('/api/share/create', createPayload, {
+        headers: { 'x-passcode': Number(passcodeNum) }
+      });
     }
     return { totalShares, totalInvestment };
   };
 
+  // ===================================================================
+  // ✅ executeTransaction – Passcode sent via header only
+  // ===================================================================
   const executeTransaction = async (passcode) => {
-    if (passcode !== '123456') {
-      setPasscodeError('Invalid passcode');
-      setPasscodeDigits(['', '', '', '', '', '']);
-      inputRefs[0]?.current?.focus();
-      return;
-    }
     if (!pendingTransaction) return;
 
     const { type, shares, price } = pendingTransaction;
@@ -574,7 +572,7 @@ function ShareholderTrade() {
       priceNum = Number(price);
       shareholderIdNum = Number(selectedAccount.id);
       passcodeNum = Number(passcode);
-      apiDate = transactionDateApi; // still using the stored date
+      apiDate = transactionDateApi;
 
       if (isNaN(quantity) || quantity <= 0) throw new Error('Invalid share amount');
       if (isNaN(priceNum) || priceNum <= 0) throw new Error('Invalid price');
@@ -596,14 +594,15 @@ function ShareholderTrade() {
     try {
       if (type === 'buy') {
         const transactionPayload = {
-          passcode: passcodeNum,
           shareholder_id: shareholderIdNum,
           share_quantity: quantity,
           share_price: priceNum,
           purchase_date: apiDate,
           status: 'buy',
         };
-        await api.post('/api/create/share/transactions', transactionPayload);
+        await api.post('/api/create/share/transactions', transactionPayload, {
+          headers: { 'x-passcode': passcodeNum }
+        });
         console.log('✅ Buy transaction recorded');
 
         const shareRecord = await fetchShareRecord(shareholderIdNum);
@@ -619,9 +618,10 @@ function ShareholderTrade() {
             share_quantity: newTotalShares,
             price_per_share: priceToKeep,
             total_investment: newTotalInvestment,
-            passcode: passcodeNum,
           };
-          await api.post('/api/share/create', createPayload);
+          await api.post('/api/share/create', createPayload, {
+            headers: { 'x-passcode': passcodeNum }
+          });
           console.log('✅ Share record created');
         } else {
           const updatePayload = {
@@ -629,9 +629,10 @@ function ShareholderTrade() {
             share_quantity: newTotalShares,
             price_per_share: priceToKeep,
             total_investment: newTotalInvestment,
-            passcode: passcodeNum,
           };
-          await api.put(`/api/share/update/${shareRecord.shareId}`, updatePayload);
+          await api.put(`/api/share/update/${shareRecord.shareId}`, updatePayload, {
+            headers: { 'x-passcode': passcodeNum }
+          });
           console.log('✅ Share record updated');
         }
 
@@ -639,7 +640,6 @@ function ShareholderTrade() {
 
       } else if (type === 'sell') {
         const sellPayload = {
-          passcode: passcodeNum,
           shareholder_id: shareholderIdNum,
           share_quantity: quantity,
           share_price: priceNum,
@@ -647,7 +647,9 @@ function ShareholderTrade() {
           percentage: 0,
           status: 'sell',
         };
-        await api.post('/api/create/share/transactions', sellPayload);
+        await api.post('/api/create/share/transactions', sellPayload, {
+          headers: { 'x-passcode': passcodeNum }
+        });
         console.log('✅ Sell transaction recorded');
 
         await recalcAndUpdateShareRecord(shareholderIdNum, passcodeNum);

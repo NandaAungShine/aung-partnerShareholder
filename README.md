@@ -56,7 +56,7 @@ Make sure you have Node.js installed on your machine.
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/your-username/aung-partner-admin-dashboard.git](https://github.com/your-username/aung-partner-admin-dashboard.git)
+git clone [https://github.com/NandaAungShine/aung-partnerShareholder.git](https://github.com/NandaAungShine/aung-partnerShareholder.git)
 cd aung-partner-admin-dashboard
 
 ### Install Dependencies

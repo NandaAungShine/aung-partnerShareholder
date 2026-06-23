@@ -1,7 +1,7 @@
 {
   "name": "bagan",
   "private": true,
-  "proxy": "http://130.94.23.117:5000",
+  "proxy": "http://130.94.21.185:5000",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

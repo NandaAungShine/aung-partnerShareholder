@@ -5,7 +5,7 @@ import axios from 'axios';
 const NOTIFICATION_SOUND_URL = '/assets/sounds/notification.wav';
 
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'http://130.94.23.117:5000'
+  ? 'http://130.94.21.185:5000'
   : '';
 
 const getImageUrl = (imagePath) => {
@@ -407,10 +407,12 @@ function Shareholder() {
     };
   }, []);
 
+  // ================== API calls with passcode in header ==================
+
   const createShareAPI = async (shareData, passcode) => {
     setLoading(true);
     try {
-      const validPasscode = !isNaN(Number(passcode)) ? Number(passcode) : 0;
+      const validPasscode = Number(passcode);
       const shareQuantity = Number(shareData.share_quantity) || 0;
       const pricePerShare = Number(shareData.price_per_share) || 10000;
       const totalInvestment = shareQuantity * pricePerShare;
@@ -420,9 +422,10 @@ function Shareholder() {
         share_quantity: shareQuantity,
         price_per_share: pricePerShare,
         total_investment: totalInvestment,
-        passcode: validPasscode,
       };
-      const response = await api.post('/api/share/create', payload);
+      const response = await api.post('/api/share/create', payload, {
+        headers: { 'x-passcode': validPasscode }
+      });
       if (response.status === 200 || response.status === 201) {
         await fetchUsersAndShares();
         return true;
@@ -446,15 +449,16 @@ function Shareholder() {
         alert('Share record not found');
         return false;
       }
-      const validPasscode = !isNaN(Number(passcode)) ? Number(passcode) : 0;
+      const validPasscode = Number(passcode);
       const payload = {
         share_class: shareClass,
         share_quantity: existingShare.shareQuantity,
         price_per_share: existingShare.sharePrice,
         total_investment: existingShare.shareQuantity * existingShare.sharePrice,
-        passcode: validPasscode,
       };
-      const response = await api.put(`/api/share/update/${shareId}`, payload);
+      const response = await api.put(`/api/share/update/${shareId}`, payload, {
+        headers: { 'x-passcode': validPasscode }
+      });
       if (response.status === 200 || response.status === 201) {
         await fetchUsersAndShares();
         return true;
@@ -469,7 +473,10 @@ function Shareholder() {
   const approveUserAPI = async (shareholderId, passcode) => {
     setLoading(true);
     try {
-      const response = await api.put(`/auth/approved/user/${shareholderId}`, { passcode: Number(passcode) });
+      const validPasscode = Number(passcode);
+      const response = await api.put(`/auth/approved/user/${shareholderId}`, {}, {
+        headers: { 'x-passcode': validPasscode }
+      });
       if (response.status === 200 || response.status === 201) {
         await fetchUsersAndShares();
         return true;
@@ -484,7 +491,10 @@ function Shareholder() {
   const rejectUserAPI = async (shareholderId, passcode) => {
     setLoading(true);
     try {
-      const response = await api.put(`/auth/cancelled/user/${shareholderId}`, { passcode: Number(passcode) });
+      const validPasscode = Number(passcode);
+      const response = await api.put(`/auth/cancelled/user/${shareholderId}`, {}, {
+        headers: { 'x-passcode': validPasscode }
+      });
       if (response.status === 200 || response.status === 201) {
         await fetchUsersAndShares();
         return true;
@@ -499,7 +509,10 @@ function Shareholder() {
   const deleteShareholderAPI = async (shareId, passcode) => {
     setLoading(true);
     try {
-      const response = await api.delete(`/api/share/delete/${shareId}`, { data: { passcode: Number(passcode) } });
+      const validPasscode = Number(passcode);
+      const response = await api.delete(`/api/share/delete/${shareId}`, {
+        headers: { 'x-passcode': validPasscode }
+      });
       if (response.status === 200 || response.status === 201 || response.status === 204) {
         await fetchUsersAndShares();
         return true;
@@ -510,6 +523,8 @@ function Shareholder() {
       return false;
     } finally { setLoading(false); }
   };
+
+  // ================== Passcode Modal Flow ==================
 
   const requestPasscode = (action, params) => {
     setPasscodeDigits(['','','','','','']);
@@ -583,6 +598,8 @@ function Shareholder() {
     setSelectedShareholderForView(s);
     setShowViewModal(true);
   };
+
+  // ================== Sorting and Filtering ==================
 
   const getSortedShareholders = (list) => {
     let result = [...list];

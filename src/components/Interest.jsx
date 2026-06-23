@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from './Header';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'http://130.94.23.117:5000';
+const API_BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'http://130.94.21.185:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -202,13 +202,10 @@ function Interest() {
     setDividendRate('');
   };
 
+  // ================================================================
+  // applyDividend – Passcode sent via header only
+  // ================================================================
   const applyDividend = async (passcode) => {
-    if (passcode !== '123456') {
-      setPasscodeError('Invalid passcode');
-      setPasscodeDigits(['','','','','','']);
-      inputRefs[0]?.current?.focus();
-      return;
-    }
     if (!selectedShareholderId || !selectedTransaction) return;
 
     const rate = parseFloat(dividendRate);
@@ -233,7 +230,6 @@ function Interest() {
       const shareholderIdNum = Number(selectedShareholderId);
       
       const payload = {
-        passcode: passcodeNum,
         shareholder_id: shareholderIdNum,
         share_quantity: baseShares,
         share_price: priceForDividend,
@@ -242,24 +238,22 @@ function Interest() {
         status: 'dividend',
       };
       console.log('📤 Dividend payload:', payload);
-      await api.post('/api/create/share/transactions', payload);
+      await api.post('/api/create/share/transactions', payload, {
+        headers: { 'x-passcode': passcodeNum }
+      });
       console.log('✅ Dividend transaction created');
 
-      // ⏳ DB Commit အတွက် 1500ms စောင့်ပါ (အာမခံချက်ရှိစေရန်)
       console.log('⏳ Waiting 1500ms for DB commit...');
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // 📢 Same-Tab Refresh အတွက် Event
       window.dispatchEvent(new CustomEvent('dividendApplied', {
         detail: { shareholderId: shareholderIdNum }
       }));
       console.log('📢 dividendApplied event dispatched for shareholder:', shareholderIdNum);
 
-      // 📢 Cross-Tab Refresh အတွက် localStorage Trigger
       localStorage.setItem('dividendTrigger', Date.now());
       console.log('📢 dividendTrigger set in localStorage');
 
-      // 📢 Additional Refresh
       window.dispatchEvent(new CustomEvent('shareholderRefresh'));
 
       const profitAmount = baseShares * priceForDividend * rate / 100;
