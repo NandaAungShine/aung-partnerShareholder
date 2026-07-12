@@ -826,12 +826,12 @@ body {
 
 /* ==================== DASHBOARD CONTAINER ==================== */
 .dashboard-container {
-  margin-left: 280px;
+  margin-left: 180px;
   padding: 24px 32px;
   min-height: 100vh;
   transition: all 0.3s ease;
-  width: calc(100vw - 280px);  /* 100% → 100vw ပြောင်း */
-  max-width: calc(100vw - 280px);  /* max-width ထည့် */
+  width: calc(100vw - 0);  /* 100% → 100vw ပြောင်း */
+  max-width: 100%;  /* max-width ထည့် */
   box-sizing: border-box;
   position: relative;
   overflow-x: hidden;

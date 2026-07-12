@@ -362,7 +362,41 @@ function Interest() {
   return (
     <div className={`dashboard-container ${isDarkMode ? 'dark-theme' : 'light-theme'}`}>
       <Header title="Share Dividend Calculator" onThemeChange={handleThemeChange} />
+      {/* ====== FIX: Sidebar နဲ့ ကွာနေတဲ့ နေရာလွတ် (White Gap) ကို ဖယ်ရှားပြီး width အပြည့်ယူမယ် ====== */}
       <style>{`
+        /* ----- Main Layout Fix (Sidebar နဲ့ ကပ်အောင် ချိန်ညှိထား) ----- */
+        .App {
+          display: flex !important;
+          width: 100% !important;
+          min-height: 100vh !important;
+          overflow-x: hidden !important;
+        }
+        
+        .App .main-content {
+          flex: 1 !important;
+          min-width: 0 !important;
+          width: auto !important;
+          margin-left: 0 !important;
+          padding-left: 0 !important;
+          padding-right: 16px !important;
+          box-sizing: border-box !important;
+          transition: flex 0.3s ease;
+        }
+
+        .dashboard-container {
+          margin-left: 170px !important;
+          padding: 24px 32px !important;
+          min-height: 100vh !important;
+          transition: all 0.3s ease !important;
+          width: calc(100vw - 170px) !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          position: relative !important;
+          overflow-x: hidden !important;
+          flex: 1 !important;
+        }
+
+        /* မူရင်း Interest CSS အားလုံးကို အောက်မှာ ဆက်ထားမယ် */
         .dividend-container { max-width: 600px; width: 100%; margin: 2rem auto; padding: 0 1rem; }
         .dividend-card { background: var(--card-bg); border-radius: 24px; padding: 2rem; box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
         .form-group { margin-bottom: 1.5rem; }

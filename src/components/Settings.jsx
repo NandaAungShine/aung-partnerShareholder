@@ -304,9 +304,7 @@ function Settings() {
   };
 
   // ============================================================
-  // ✅ PASSWORD CHANGE (PUT /auth/admin/change/password/:id)
-  //    Body: { "password": "...", "confirmPassword": "..." }
-  //    Response: { "success": true, "message": "Password Change Success!" }
+  // ✅ PASSWORD CHANGE 
   // ============================================================
   const changePassword = async (userId, password, confirmPassword) => {
     const url = `${PASSWORD_CHANGE_URL}/${userId}`; // /auth/admin/change/password/1
@@ -784,6 +782,122 @@ function Settings() {
   // ========== RENDER ==========
   return (
     <div className={`dashboard-container ${isDarkMode ? 'dark-theme' : 'light-theme'}`}>
+      {/* ====== FIX: Sidebar နဲ့ ကွာနေတဲ့ နေရာလွတ် (White Gap) ကို ဖယ်ရှားပြီး width အပြည့်ယူမယ် ====== */}
+      <style>{`
+        /* ----- Main Layout Fix (Sidebar နဲ့ ကပ်အောင် ချိန်ညှိထား) ----- */
+        .App {
+          display: flex !important;
+          width: 100% !important;
+          min-height: 100vh !important;
+          overflow-x: hidden !important;
+        }
+        
+        .App .main-content {
+          flex: 1 !important;
+          min-width: 0 !important;
+          width: auto !important;
+          margin-left: 0 !important;
+          padding-left: 0 !important;
+          padding-right: 16px !important;
+          box-sizing: border-box !important;
+          transition: flex 0.3s ease;
+        }
+
+        .dashboard-container {
+          margin-left: 170px !important;
+          padding: 24px 32px !important;
+          min-height: 100vh !important;
+          transition: all 0.3s ease !important;
+          width: calc(100vw - 170px) !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          position: relative !important;
+          overflow-x: hidden !important;
+          flex: 1 !important;
+        }
+
+        /* မူရင်း Settings CSS အားလုံးကို အောက်မှာ ဆက်ထားမယ် */
+        .success-message { background: #198754; color: white; padding: 12px 24px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .settings-two-columns { display: flex; gap: 24px; flex-wrap: wrap; }
+        .admin-profile-card { flex: 1; min-width: 320px; background: var(--card-bg); border-radius: 20px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .settings-right-column { flex: 2; min-width: 500px; }
+        .profile-header { display: flex; gap: 20px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
+        .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: var(--card-bg); border: 2px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-emoji { font-size: 48px; }
+        .profile-image-edit { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+        .image-edit-btn, .image-save-btn { background: #0d6efd; color: white; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; }
+        .image-edit-btn:hover, .image-save-btn:hover { opacity: 0.8; }
+        .image-save-btn { background: #198754; }
+        .profile-info h2 { margin: 0; }
+        .profile-name-input { font-size: 24px; font-weight: bold; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-color); }
+        .profile-details { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+        .detail-item { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+        .detail-item i { font-size: 18px; color: #0d6efd; width: 24px; text-align: center; }
+        .detail-content { flex: 1; }
+        .detail-label { display: block; font-size: 12px; color: #6c757d; }
+        .detail-value { font-size: 14px; color: var(--text-color); }
+        .detail-input { width: 100%; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-color); }
+        .profile-edit-actions { display: flex; gap: 10px; margin-top: 12px; }
+        .cancel-edit-btn { background: #6c757d; color: white; border: none; padding: 8px 24px; border-radius: 12px; cursor: pointer; }
+        .save-profile-btn { background: #198754; color: white; border: none; padding: 8px 24px; border-radius: 12px; cursor: pointer; }
+        .edit-profile-btn { background: #6c757d; color: white; border: none; padding: 10px 24px; border-radius: 12px; cursor: pointer; width: 100%; text-align: center; }
+        .edit-profile-btn:hover { opacity: 0.8; }
+        .settings-tabs-container { margin-bottom: 20px; }
+        .settings-tabs { display: flex; gap: 4px; background: var(--card-bg); border-radius: 16px; padding: 4px; border: 1px solid var(--border-color); }
+        .settings-tab { flex: 1; padding: 10px 16px; border: none; border-radius: 12px; background: transparent; color: var(--text-color); cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .settings-tab.active { background: #0d6efd; color: white; }
+        .settings-tab:hover:not(.active) { background: var(--hover-bg); }
+        .settings-section { background: var(--card-bg); border-radius: 20px; padding: 24px; border: 1px solid var(--border-color); }
+        .section-title { font-size: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .settings-form { display: flex; flex-direction: column; gap: 12px; }
+        .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+        .form-row .form-group { flex: 1; min-width: 200px; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 4px; font-size: 14px; color: #6c757d; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); }
+        .form-group input:disabled, .form-group select:disabled { opacity: 0.6; cursor: not-allowed; }
+        .settings-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-primary { background: #0d6efd; color: white; border: none; padding: 8px 20px; border-radius: 12px; cursor: pointer; font-weight: 500; }
+        .btn-primary:hover { opacity: 0.8; }
+        .btn-secondary { background: #6c757d; color: white; border: none; padding: 8px 20px; border-radius: 12px; cursor: pointer; font-weight: 500; }
+        .btn-secondary:hover { opacity: 0.8; }
+        .btn-danger { background: #dc3545; color: white; border: none; padding: 8px 20px; border-radius: 12px; cursor: pointer; font-weight: 500; }
+        .btn-danger:hover { opacity: 0.8; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+        .status-badge.active { background: #19875420; color: #198754; }
+        .status-badge.inactive { background: #dc354520; color: #dc3545; }
+        .switch-button { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .switch-button input { display: none; }
+        .switch-slider { width: 48px; height: 26px; background: #ccc; border-radius: 13px; position: relative; transition: 0.3s; }
+        .switch-slider::after { content: ''; width: 22px; height: 22px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.3s; }
+        .switch-button input:checked + .switch-slider { background: #0d6efd; }
+        .switch-button input:checked + .switch-slider::after { left: 24px; }
+        .backup-info-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; display: flex; gap: 24px; flex-wrap: wrap; }
+        .backup-info-row { display: flex; gap: 8px; align-items: center; }
+        .backup-info-row span { color: #6c757d; }
+        .backup-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+        .modal-content-small { background: var(--card-bg); border-radius: 24px; padding: 24px; max-width: 480px; width: 90%; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .modal-header h2 { margin: 0; font-size: 20px; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-color); }
+        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+        .warning-text { color: #dc3545; font-weight: 500; }
+        .discard-btn { background: #6c757d; color: white; border: none; padding: 8px 20px; border-radius: 12px; cursor: pointer; }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .terms-preview { background: var(--input-bg); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); max-height: 400px; overflow-y: auto; }
+        .terms-preview-title { padding: 0.5rem 0; font-weight: bold; }
+        .text-muted { color: #6c757d; }
+        @media (max-width: 768px) {
+          .settings-two-columns { flex-direction: column; }
+          .admin-profile-card { min-width: auto; }
+          .settings-right-column { min-width: auto; }
+          .form-row { flex-direction: column; }
+          .form-row .form-group { min-width: auto; }
+        }
+      `}</style>
+
       <Header title="Settings" onThemeChange={handleThemeChange} />
 
       {showSuccessMessage && (

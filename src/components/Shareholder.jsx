@@ -40,10 +40,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // 401 error ကို ဒီမှာ ကိုင်တွယ်တာ - ဒါပေမယ့် approve/reject အတွက် သီးခြားကိုင်တွယ်မယ်
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('userRole');
-      window.location.href = '/login';
+      // Login ကို ချက်ချင်းမပို့ဘူး - အောက်မှာ သီးခြားကိုင်တွယ်မယ်
+      console.warn('401 Unauthorized - Please check your credentials');
     }
     return Promise.reject(error);
   }
@@ -192,7 +192,6 @@ function Shareholder() {
         } else if (status === 'sell') {
           totalShares -= shares;
         }
-        // dividend: ignored for totals
       }
 
       return { totalShares, totalInvestment };
@@ -362,24 +361,28 @@ function Shareholder() {
           })
           .map(u => u.id)
       );
+      
       if (firstLoadRef.current) {
         previousPendingIdsRef.current = currentPendingIds;
         firstLoadRef.current = false;
         console.log("🟡 first load initialized, pending IDs:", [...currentPendingIds]);
         return;
       }
+
       const hasNew = [...currentPendingIds].some(id => !previousPendingIdsRef.current.has(id));
+      
       if (hasNew) {
         console.log("🚨 NEW PENDING USER DETECTED", [...currentPendingIds]);
-        previousPendingIdsRef.current = currentPendingIds;
         playNotificationSound();  
         setTimeout(() => {
           localStorage.setItem('lastPendingRefresh', Date.now());
           window.location.reload();
         }, 1500);
-        return;
+        return; 
       }
+      
       previousPendingIdsRef.current = currentPendingIds;
+
     } catch (err) {
       console.warn("Polling error:", err);
     }
@@ -387,7 +390,8 @@ function Shareholder() {
   
   useEffect(() => {
     pollForPendingUsers();
-    pollingIntervalRef.current = setInterval(pollForPendingUsers, 60000);
+   
+    pollingIntervalRef.current = setInterval(pollForPendingUsers, 30000); 
     return () => {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     };
@@ -432,7 +436,12 @@ function Shareholder() {
       }
       return false;
     } catch (error) {
-      alert(error.response?.data?.message || 'Create failed');
+      const errMsg = error.response?.data?.message || 'Create failed';
+      alert(errMsg);
+      // 401 ဆိုရင် login မပို့ဘူး - user ကို message ပြမယ်
+      if (error.response?.status === 401) {
+        setPasscodeError('Invalid passcode or session expired. Please try again.');
+      }
       return false;
     } finally { setLoading(false); }
   };
@@ -465,7 +474,11 @@ function Shareholder() {
       }
       return false;
     } catch (error) {
-      alert(error.response?.data?.message || 'Update failed');
+      const errMsg = error.response?.data?.message || 'Update failed';
+      alert(errMsg);
+      if (error.response?.status === 401) {
+        setPasscodeError('Invalid passcode or session expired. Please try again.');
+      }
       return false;
     } finally { setLoading(false); }
   };
@@ -483,7 +496,11 @@ function Shareholder() {
       }
       return false;
     } catch (error) {
-      alert(error.response?.data?.message || 'Approve failed');
+      const errMsg = error.response?.data?.message || 'Approve failed';
+      alert(errMsg);
+      if (error.response?.status === 401) {
+        setPasscodeError('Invalid passcode or session expired. Please try again.');
+      }
       return false;
     } finally { setLoading(false); }
   };
@@ -501,16 +518,20 @@ function Shareholder() {
       }
       return false;
     } catch (error) {
-      alert(error.response?.data?.message || 'Reject failed');
+      const errMsg = error.response?.data?.message || 'Reject failed';
+      alert(errMsg);
+      if (error.response?.status === 401) {
+        setPasscodeError('Invalid passcode or session expired. Please try again.');
+      }
       return false;
     } finally { setLoading(false); }
   };
 
-  const deleteShareholderAPI = async (shareId, passcode) => {
+  const deleteShareholderAPI = async (userId, passcode) => {
     setLoading(true);
     try {
       const validPasscode = Number(passcode);
-      const response = await api.delete(`/api/share/delete/${shareId}`, {
+      const response = await api.delete(`/auth/admin/account/delete/${userId}`, {
         headers: { 'x-passcode': validPasscode }
       });
       if (response.status === 200 || response.status === 201 || response.status === 204) {
@@ -519,7 +540,11 @@ function Shareholder() {
       }
       return false;
     } catch (error) {
-      alert(error.response?.data?.message || 'Delete failed');
+      const errMsg = error.response?.data?.message || 'Delete failed';
+      alert(errMsg);
+      if (error.response?.status === 401) {
+        setPasscodeError('Invalid passcode or session expired. Please try again.');
+      }
       return false;
     } finally { setLoading(false); }
   };
@@ -551,20 +576,23 @@ function Shareholder() {
     const action = pendingAction;
     const params = pendingActionParams;
     try {
+      let success = false;
       if (action === 'approve') {
-        await approveUserAPI(params.shareholderId, passcode);
+        success = await approveUserAPI(params.shareholderId, passcode);
       } else if (action === 'reject') {
-        await rejectUserAPI(params.shareholderId, passcode);
+        success = await rejectUserAPI(params.shareholderId, passcode);
       } else if (action === 'delete') {
-        await deleteShareholderAPI(params.shareId, passcode);
+        success = await deleteShareholderAPI(params.shareholderId, passcode);
       } else if (action === 'update') {
         const { shareholder, newShareClass } = params;
-        await updateShareClassOnlyAPI(shareholder.id, newShareClass, passcode);
+        success = await updateShareClassOnlyAPI(shareholder.id, newShareClass, passcode);
       }
-      setShowPasscodeModal(false);
-      setPasscodeDigits(['', '', '', '', '', '']);
-      setPendingAction(null);
-      setPendingActionParams(null);
+      if (success) {
+        setShowPasscodeModal(false);
+        setPasscodeDigits(['', '', '', '', '', '']);
+        setPendingAction(null);
+        setPendingActionParams(null);
+      }
     } catch (error) {
       const backendMsg = error.response?.data?.message || error.message;
       setPasscodeError(backendMsg || 'Invalid passcode or server error.');
@@ -576,11 +604,7 @@ function Shareholder() {
   const handleApprove = (s) => requestPasscode('approve', { shareholderId: s.shareholder_id });
   const handleReject = (s) => requestPasscode('reject', { shareholderId: s.shareholder_id });
   const handleDelete = (s) => {
-    if (!s.id || s.id.toString().startsWith('user_')) {
-      alert('No share record to delete');
-      return;
-    }
-    requestPasscode('delete', { shareId: s.id });
+    requestPasscode('delete', { shareholderId: s.shareholder_id });
   };
   const handleEditShareholder = (s) => {
     setSelectedShareholderForEdit(s);
@@ -763,19 +787,73 @@ function Shareholder() {
         .main-stats-cards .stat-card-mini:nth-child(2),
         .main-stats-cards .stat-card-mini:nth-child(3) { flex: 0.7; min-width: 120px; }
         .main-stats-cards .stat-card-mini:nth-child(4) { flex: 1.3; min-width: 180px; }
-        .actions-cell { white-space: nowrap; display: flex; gap: 6px; align-items: center; }
+        
+        /* ====== Action Column Styles ====== */
+        .actions-cell {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 4px !important;
+          align-items: center !important;
+          min-width: 110px;
+          padding: 4px 2px !important;
+        }
+        .action-group {
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+        .action-group-top {
+          margin-bottom: 2px;
+        }
+        .action-group-bottom {
+          margin-top: 2px;
+        }
+        
         .action-icon {
           width: 32px; height: 32px; font-size: 14px;
           display: inline-flex; align-items: center; justify-content: center;
           border-radius: 8px; background: var(--btn-bg); transition: all 0.2s;
           flex-shrink: 0; cursor: pointer; border: none;
         }
+        .action-icon.approve {
+          color: #0d7a4a;
+          background: rgba(13, 122, 74, 0.1);
+          margin-right: 8px;
+        }
+        .action-icon.approve:hover {
+          background: #0d7a4a;
+          color: white;
+        }
+        .action-icon.reject {
+          color: #dc3545;
+          background: rgba(220, 53, 69, 0.1);
+        }
+        .action-icon.reject:hover {
+          background: #dc3545;
+          color: white;
+        }
+        .action-icon.edit {
+          color: #0d6efd;
+          background: rgba(13, 110, 253, 0.1);
+          margin-right: 8px;
+        }
+        .action-icon.edit:hover {
+          background: #0d6efd;
+          color: white;
+        }
+        .action-icon.view {
+          color: #6f42c1;
+          background: rgba(111, 66, 193, 0.1);
+          margin-right: 8px;
+        }
+        .action-icon.view:hover {
+          background: #6f42c1;
+          color: white;
+        }
         .action-icon.delete {
           color: #dc3545;
           background: rgba(220, 53, 69, 0.1);
-          display: inline-flex !important;
-          visibility: visible !important;
-          opacity: 1 !important;
         }
         .action-icon.delete:hover {
           background: #dc3545;
@@ -785,6 +863,7 @@ function Shareholder() {
           color: #ff6b6b;
           background: rgba(255, 107, 107, 0.15);
         }
+        
         .shareholder-data-table th:nth-child(5), .shareholder-data-table td:nth-child(5) { min-width: 140px; width: 140px; }
         .shareholder-table-wrapper { overflow-x: auto; }
         .shareholder-data-table { min-width: 800px; }
@@ -999,16 +1078,23 @@ function Shareholder() {
                       </span>
                     </td>
                     <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
-                      {shareholder.status === 'Pending' && (
-                        <>
-                          <button className="action-icon approve" title="Approve" onClick={() => handleApprove(shareholder)}><i className="bi bi-check-lg"></i></button>
-                          <button className="action-icon reject" title="Reject" onClick={() => handleReject(shareholder)}><i className="bi bi-x-lg"></i></button>
-                        </>
-                      )}
-                      <button className="action-icon edit" title="Edit" onClick={() => handleEditShareholder(shareholder)}><i className="bi bi-pencil-square"></i></button>
-                      <button className="action-icon view" title="View" onClick={() => handleViewDetails(shareholder)}><i className="bi bi-eye"></i></button>
-                      <button className="action-icon delete" title="Delete" onClick={() => handleDelete(shareholder)}><i className="bi bi-trash"></i></button>
-                    </td>
+                      <div className="d-flex flex-column gap-2"> 
+    
+    {shareholder.status === 'Pending' && (
+      <div className="action-group-top">
+        <button className="action-icon approve" title="Approve" onClick={() => handleApprove(shareholder)}><i className="bi bi-check-lg"></i></button>
+        <button className="action-icon reject" title="Reject" onClick={() => handleReject(shareholder)}><i className="bi bi-x-lg"></i></button>
+      </div>
+    )}
+    
+    <div className="action-group-bottom">
+      <button className="action-icon edit" title="Edit" onClick={() => handleEditShareholder(shareholder)}><i className="bi bi-pencil-square"></i></button>
+      <button className="action-icon view" title="View" onClick={() => handleViewDetails(shareholder)}><i className="bi bi-eye"></i></button>
+      <button className="action-icon delete" title="Delete" onClick={() => handleDelete(shareholder)}><i className="bi bi-trash"></i></button>
+    </div>
+
+  </div>
+</td>
                   </tr>
                 ))
               ) : (

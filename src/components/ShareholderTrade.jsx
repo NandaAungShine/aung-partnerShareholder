@@ -275,6 +275,9 @@ function ShareholderTrade() {
     }
   }, []);
 
+  // ============================================================
+  // ✅ fetchAllTransactions – Withdraw ပါ ထည့်ပြီး
+  // ============================================================
   const fetchAllTransactions = useCallback(async (shareholderId) => {
     console.log('🔄 fetchAllTransactions started');
     if (!shareholderId) return;
@@ -315,9 +318,25 @@ function ShareholderTrade() {
 
       const dividendFromApi = await fetchDividendTransactions(shareholderId);
 
+      // ========== Withdraw transactions ကို localStorage ကနေ ဖတ်မယ် ==========
+      const withdrawKey = `withdrawHistory_${shareholderId}`;
+      const storedWithdraws = JSON.parse(localStorage.getItem(withdrawKey) || '[]');
+      const withdrawTransactions = storedWithdraws.map((w, index) => ({
+        id: `withdraw_${Date.now()}_${index}`,
+        type: 'WITHDRAW',
+        shares: 0,
+        price: 0,
+        date: w.date || new Date().toISOString().split('T')[0],
+        totalAmount: w.amount || 0,
+        percentage: 0,
+        profitAmount: 0,
+        amount: w.amount || 0,
+      }));
+
       const allMap = new Map();
       formattedMain.forEach(tx => allMap.set(tx.id, tx));
       dividendFromApi.forEach(tx => allMap.set(tx.id, tx));
+      withdrawTransactions.forEach(tx => allMap.set(tx.id, tx));
 
       const unique = Array.from(allMap.values());
       unique.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -337,6 +356,8 @@ function ShareholderTrade() {
         } else if (tx.type === 'DIVIDEND') {
           const profit = tx.profitAmount || 0;
           totalDividendProfit += profit;
+        } else if (tx.type === 'WITHDRAW') {
+          totalDividendProfit -= (tx.amount || 0);
         }
       });
 
@@ -352,15 +373,15 @@ function ShareholderTrade() {
       setTotals({
         totalShares,
         totalInvestment,
-        totalDividendProfit,
+        totalDividendProfit: Math.max(0, totalDividendProfit),
         lastInterestEntries,
       });
 
       console.log('🧮 Totals recalculated', { totalShares, totalInvestment, totalDividendProfit });
 
-      await sendTotalsToMobile(shareholderId, totalShares, totalInvestment, totalDividendProfit);
+      await sendTotalsToMobile(shareholderId, totalShares, totalInvestment, Math.max(0, totalDividendProfit));
 
-      return { totalShares, totalInvestment, totalDividendProfit, lastInterestEntries };
+      return { totalShares, totalInvestment, totalDividendProfit: Math.max(0, totalDividendProfit), lastInterestEntries };
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
       setTransactions([]);
@@ -477,6 +498,107 @@ function ShareholderTrade() {
     };
     window.addEventListener('shareholderRefresh', refreshHandler);
     return () => window.removeEventListener('shareholderRefresh', refreshHandler);
+  }, [selectedAccount, fetchAllTransactions]);
+
+  // ============================================================
+  // ✅ WITHDRAW APPROVED EVENT LISTENER (Withdraw ကို History မှာ ထည့်ပြီး API ကိုလည်း ပို့မယ်)
+  // ============================================================
+  useEffect(() => {
+    if (!selectedAccount) return;
+
+    const handleWithdrawApproved = async (event) => {
+      const { shareholderId, amount, requestId } = event.detail || {};
+      if (!shareholderId || !amount) return;
+      
+      if (selectedAccount && Number(selectedAccount.id) === Number(shareholderId)) {
+        // 1️⃣ Save to localStorage (for persistence)
+        const withdrawKey = `withdrawHistory_${shareholderId}`;
+        const stored = JSON.parse(localStorage.getItem(withdrawKey) || '[]');
+        const newWithdraw = {
+          id: requestId || `withdraw_${Date.now()}`,
+          amount: amount,
+          date: new Date().toISOString().split('T')[0],
+          timestamp: Date.now()
+        };
+        stored.push(newWithdraw);
+        localStorage.setItem(withdrawKey, JSON.stringify(stored));
+
+        // 2️⃣ Update totals immediately
+        setTotals(prev => ({
+          ...prev,
+          totalDividendProfit: Math.max(0, prev.totalDividendProfit - amount),
+          totalInvestment: Math.max(0, prev.totalInvestment - amount),
+        }));
+
+        // 3️⃣ 🔥 Send to API (if available)
+        try {
+          await api.post('/api/withdraw/transaction', {
+            shareholder_id: Number(shareholderId),
+            amount: amount,
+            request_id: requestId,
+            date: new Date().toISOString().split('T')[0],
+          });
+          console.log('✅ Withdraw transaction sent to API');
+        } catch (apiErr) {
+          console.warn('⚠️ Could not send withdraw to API, but local data saved:', apiErr.message);
+        }
+
+        // 4️⃣ Refresh transactions (will show withdraw in history)
+        await fetchAllTransactions(shareholderId);
+        console.log(`✅ Withdraw ${amount} MMK applied to shareholder ${shareholderId}`);
+      }
+    };
+
+    const handleStorageChange = async (e) => {
+      if (e.key === 'withdrawTrigger') {
+        try {
+          const data = JSON.parse(e.newValue);
+          if (data && Number(data.shareholderId) === Number(selectedAccount.id)) {
+            // Same logic as above
+            const withdrawKey = `withdrawHistory_${selectedAccount.id}`;
+            const stored = JSON.parse(localStorage.getItem(withdrawKey) || '[]');
+            const newWithdraw = {
+              id: data.requestId || `withdraw_${Date.now()}`,
+              amount: data.amount,
+              date: new Date().toISOString().split('T')[0],
+              timestamp: Date.now()
+            };
+            stored.push(newWithdraw);
+            localStorage.setItem(withdrawKey, JSON.stringify(stored));
+
+            setTotals(prev => ({
+              ...prev,
+              totalDividendProfit: Math.max(0, prev.totalDividendProfit - data.amount),
+              totalInvestment: Math.max(0, prev.totalInvestment - data.amount),
+            }));
+
+            try {
+              await api.post('/api/withdraw/transaction', {
+                shareholder_id: Number(selectedAccount.id),
+                amount: data.amount,
+                request_id: data.requestId,
+                date: new Date().toISOString().split('T')[0],
+              });
+              console.log('✅ Withdraw transaction sent to API (from storage)');
+            } catch (apiErr) {
+              console.warn('⚠️ Could not send withdraw to API, but local data saved:', apiErr.message);
+            }
+
+            await fetchAllTransactions(selectedAccount.id);
+          }
+        } catch (err) {
+          console.warn('Failed to parse withdrawTrigger:', err);
+        }
+      }
+    };
+    
+    window.addEventListener('withdrawApproved', handleWithdrawApproved);
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('withdrawApproved', handleWithdrawApproved);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [selectedAccount, fetchAllTransactions]);
 
   useEffect(() => {
@@ -755,7 +877,39 @@ function ShareholderTrade() {
   return (
     <div className={`dashboard-container ${isDarkMode ? 'dark-theme' : 'light-theme'}`}>
       <style>{`
-        :root { --card-bg: #ffffff; --text-color: #212529; --border-color: #dee2e6; --input-bg: #ffffff; --hover-bg: #f8f9fa; }
+        /* ----- Main Layout Fix ----- */
+        .App {
+          display: flex !important;
+          width: 100% !important;
+          min-height: 100vh !important;
+          overflow-x: hidden !important;
+        }
+        
+        .App .main-content {
+          flex: 1 !important;
+          min-width: 0 !important;
+          width: auto !important;
+          margin-left: 0 !important;
+          padding-left: 0 !important;
+          padding-right: 16px !important;
+          box-sizing: border-box !important;
+          transition: flex 0.3s ease;
+        }
+
+        .dashboard-container {
+          margin-left: 170px !important;
+          padding: 24px 32px !important;
+          min-height: 100vh !important;
+          transition: all 0.3s ease !important;
+          width: calc(100vw - 170px) !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          position: relative !important;
+          overflow-x: hidden !important;
+          flex: 1 !important;
+        }
+
+        :root { --card-bg: #272727; --text-color: #212529; --border-color: #dee2e6; --input-bg: #ffffff; --hover-bg: #f8f9fa; }
         .dark-theme { --card-bg: #1e1e2f; --text-color: #e9ecef; --border-color: #444; --input-bg: #2a2a35; --hover-bg: #2d3d3d; }
         .trade-container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
         .two-columns { display: flex; gap: 1.5rem; flex-wrap: wrap; }
@@ -789,6 +943,7 @@ function ShareholderTrade() {
         .badge-buy { display: inline-block; padding: 2px 10px; border-radius: 20px; background: #19875420; color: #198754; font-size: 0.75rem; font-weight: 600; }
         .badge-sell { display: inline-block; padding: 2px 10px; border-radius: 20px; background: #dc354520; color: #dc3545; font-size: 0.75rem; font-weight: 600; }
         .badge-dividend { display: inline-block; padding: 2px 10px; border-radius: 20px; background: #ffc10720; color: #d39e00; font-size: 0.75rem; font-weight: 600; }
+        .badge-withdraw { display: inline-block; padding: 2px 10px; border-radius: 20px; background: #dc354520; color: #dc3545; font-size: 0.75rem; font-weight: 600; }
         .filter-tabs { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; justify-content: flex-end; }
         .filter-tab { padding: 6px 16px; border-radius: 40px; background: var(--input-bg); border: 1px solid var(--border-color); cursor: pointer; font-weight: 500; transition: 0.2s; font-size: 0.8rem; }
         .filter-tab.active { background: #0d6efd; color: white; border-color: #0d6efd; }
@@ -941,6 +1096,7 @@ function ShareholderTrade() {
                       <button className={`filter-tab ${filterType === 'BUY' ? 'active' : ''}`} onClick={() => setFilterType('BUY')}>Buy</button>
                       <button className={`filter-tab ${filterType === 'SELL' ? 'active' : ''}`} onClick={() => setFilterType('SELL')}>Sell</button>
                       <button className={`filter-tab ${filterType === 'DIVIDEND' ? 'active' : ''}`} onClick={() => setFilterType('DIVIDEND')}>Dividend</button>
+                      <button className={`filter-tab ${filterType === 'WITHDRAW' ? 'active' : ''}`} onClick={() => setFilterType('WITHDRAW')}>Withdraw</button>
                     </div>
                   </div>
                   {loadingTransactions ? (
@@ -962,16 +1118,23 @@ function ShareholderTrade() {
                         </thead>
                         <tbody>
                           {displayedTransactions.map(tx => {
-                            let badgeClass = tx.type === 'BUY' ? 'badge-buy' : (tx.type === 'SELL' ? 'badge-sell' : 'badge-dividend');
-                            const displayTotal = tx.type === 'DIVIDEND' ? (tx.profitAmount || 0) : tx.totalAmount;
+                            let badgeClass = tx.type === 'BUY' ? 'badge-buy' : 
+                                             tx.type === 'SELL' ? 'badge-sell' : 
+                                             tx.type === 'DIVIDEND' ? 'badge-dividend' : 
+                                             'badge-withdraw';
+                            const displayTotal = tx.type === 'DIVIDEND' ? (tx.profitAmount || 0) : 
+                                                tx.type === 'WITHDRAW' ? (tx.amount || 0) : 
+                                                tx.totalAmount;
+                            const displayRate = tx.type === 'DIVIDEND' ? tx.percentage + '%' : 
+                                               tx.type === 'WITHDRAW' ? '-' : '-';
                             return (
                               <tr key={tx.id}>
                                 <td><span className={badgeClass}>{tx.type}</span></td>
-                                <td>{tx.shares.toLocaleString()}</td>
-                                <td>{formatCurrency(tx.price)}</td>
+                                <td>{tx.type === 'WITHDRAW' ? '-' : tx.shares.toLocaleString()}</td>
+                                <td>{tx.type === 'WITHDRAW' ? '-' : formatCurrency(tx.price)}</td>
                                 <td>{formatCurrency(displayTotal)}</td>
                                 <td>{formatDisplayDate(tx.date)}</td>
-                                <td>{tx.type === 'DIVIDEND' ? tx.percentage + '%' : '-'}</td>
+                                <td>{displayRate}</td>
                               </tr>
                             );
                           })}

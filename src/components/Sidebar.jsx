@@ -26,7 +26,7 @@ function Sidebar() {
   };
 
   return (
-    <div className="sidebar-container">
+    <div className="sidebar-container" style={{ width: '180px' }}>
 
       {/* Logo */}
       <div className="logo-section">
@@ -43,14 +43,11 @@ function Sidebar() {
             }}
             onError={(e) => {
               console.error('Logo image failed to load');
-
               e.target.src =
                 'https://via.placeholder.com/80?text=Logo';
             }}
           />
         </Link>
-
-
       </div>
 
       {/* Navigation */}
@@ -107,6 +104,23 @@ function Sidebar() {
             </Link>
           </li>
 
+          {/* 👇 NEW: Interest Request Tab */}
+          <li
+            className={`nav-item ${
+              isActive('/interest-request') ? 'active' : ''
+            }`}
+          >
+            <Link
+              to="/interest-request"
+              className="nav-link"
+            >
+              <div className="flex-items">
+                <i className="bi bi-file-earmark-check icon"></i>
+                <span>Interest Request</span>
+              </div>
+            </Link>
+          </li>
+
           <li
             className={`nav-item ${
               isActive('/settings') ? 'active' : ''
@@ -127,7 +141,7 @@ function Sidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="logout-section">
+      <div className="logout-section" style={{ width: '180px' }}>
         <button
           className="logout-btn"
           onClick={handleLogout}

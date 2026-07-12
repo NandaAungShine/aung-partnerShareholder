@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Sidebar from './components/Sidebar';
 import Login from './components/Login';
 import Shareholder from './components/Shareholder';
+import InterestRequest from './components/InterestRequest';
 import Settings from './components/Settings';
 import Interest from './components/Interest';
 import ShareholderTrade from './components/ShareholderTrade';  
@@ -85,6 +86,18 @@ function App() {
             <ProtectedRoute>
               <MainLayout>
                 <Interest />
+              </MainLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* 👇 NEW: Interest Request Route */}
+        <Route 
+          path="/interest-request" 
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <InterestRequest />
               </MainLayout>
             </ProtectedRoute>
           } 
