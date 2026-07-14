@@ -17,6 +17,9 @@ api.interceptors.request.use((config) => {
 });
 
 function Settings() {
+  // ============================================================
+  // STATE & HOOKS (မူလအတိုင်း အတိအကျ)
+  // ============================================================
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme === 'dark';
@@ -32,7 +35,6 @@ function Settings() {
   const [showDeleteContactConfirm, setShowDeleteContactConfirm] = useState(false);
   const [showDeleteTermsConfirm, setShowDeleteTermsConfirm] = useState(false);
 
-  // ========== PROFILE DATA ==========
   const [adminProfile, setAdminProfile] = useState({
     fullName: '',
     email: '',
@@ -48,10 +50,8 @@ function Settings() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
 
-  // ========== PASSCODE STATUS ==========
   const [hasPasscode, setHasPasscode] = useState(false);
 
-  // ========== PASSWORD MODAL STATE ==========
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -59,24 +59,17 @@ function Settings() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // ========== PASSCODE MODALS ==========
   const [showCreatePasscodeModal, setShowCreatePasscodeModal] = useState(false);
   const [showChangePasscodeModal, setShowChangePasscodeModal] = useState(false);
   const [currentPasscodeForCreate, setCurrentPasscodeForCreate] = useState('');
   const [newPasscode, setNewPasscode] = useState('');
   const [confirmPasscode, setConfirmPasscode] = useState('');
   const [currentPasscodeForHeader, setCurrentPasscodeForHeader] = useState('');
-  
-  // Eye toggle states
   const [showCurrentPasscode, setShowCurrentPasscode] = useState(false);
   const [showNewPasscode, setShowNewPasscode] = useState(false);
   const [showConfirmPasscode, setShowConfirmPasscode] = useState(false);
   const [passcodeLoading, setPasscodeLoading] = useState(false);
 
-  // ============================================================
-  // ✅ API ENDPOINTS
-  // ============================================================
-  // Password အတွက် URL: /auth/admin/change/password/{id}
   const PASSWORD_CHANGE_URL = '/auth/admin/change/password';
   const PASSCODE_CHECK_URL = '/api/get/passcode';
   const PASSCODE_CREATE_URL = '/api/create/passcode';
@@ -95,7 +88,6 @@ function Settings() {
     return 1;
   };
 
-  // ========== CONTACT SETTINGS ==========
   const [contactSettings, setContactSettings] = useState({
     id: null,
     name: '',
@@ -111,7 +103,6 @@ function Settings() {
   });
   const [tempContactSettings, setTempContactSettings] = useState({ ...contactSettings });
 
-  // ========== TERMS & CONDITION ==========
   const [termsData, setTermsData] = useState({
     id: null,
     title: '',
@@ -119,7 +110,6 @@ function Settings() {
   });
   const [tempTermsData, setTempTermsData] = useState({ ...termsData });
 
-  // ========== BACKUP SETTINGS ==========
   const [backupSettings, setBackupSettings] = useState({
     autoBackup: true,
     backupFrequency: 'daily',
@@ -129,7 +119,9 @@ function Settings() {
     backupSize: '245 MB',
   });
 
-  // ========== PROFILE FUNCTIONS ==========
+  // ============================================================
+  // FUNCTIONS (မူလအတိုင်း)
+  // ============================================================
   const loadProfileFromStorage = () => {
     const storedUser = localStorage.getItem('user') || localStorage.getItem('profile');
     if (storedUser) {
@@ -303,11 +295,8 @@ function Settings() {
     setTempProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ============================================================
-  // ✅ PASSWORD CHANGE 
-  // ============================================================
   const changePassword = async (userId, password, confirmPassword) => {
-    const url = `${PASSWORD_CHANGE_URL}/${userId}`; // /auth/admin/change/password/1
+    const url = `${PASSWORD_CHANGE_URL}/${userId}`;
     try {
       const response = await api.put(url, { password, confirmPassword });
       if (response.data?.success === true) return true;
@@ -346,9 +335,6 @@ function Settings() {
     }
   };
 
-  // ============================================================
-  // ✅ PASSCODE - CHECK (GET /api/get/passcode)
-  // ============================================================
   const checkPasscodeExists = async () => {
     try {
       const response = await api.get(PASSCODE_CHECK_URL);
@@ -367,9 +353,6 @@ function Settings() {
     }
   };
 
-  // ============================================================
-  // ✅ PASSCODE - CREATE (POST /api/create/passcode)
-  // ============================================================
   const createPasscode = async (passcode, confirmPasscode, currentPasscode) => {
     try {
       const response = await api.post(
@@ -403,9 +386,7 @@ function Settings() {
     setPasscodeLoading(true);
     try {
       await createPasscode(newPasscode, confirmPasscode, currentPasscodeForCreate);
-      
       localStorage.setItem('passcode', newPasscode);
-      
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
       alert('Passcode created successfully!');
@@ -424,9 +405,6 @@ function Settings() {
     }
   };
 
-  // ============================================================
-  // ✅ PASSCODE - CHANGE (PUT /api/change/passcode/{userId})
-  // ============================================================
   const changePasscode = async (userId, passcode, confirmPasscode, currentPasscode) => {
     const url = `${PASSCODE_CHANGE_URL}/${userId}`;
     try {
@@ -462,9 +440,7 @@ function Settings() {
     try {
       const userId = getCurrentUserId();
       await changePasscode(userId, newPasscode, confirmPasscode, currentPasscodeForHeader);
-      
       localStorage.setItem('passcode', newPasscode);
-      
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
       alert('Passcode changed successfully!');
@@ -482,7 +458,6 @@ function Settings() {
     }
   };
 
-  // ========== CONTACT SETTINGS ==========
   const fetchContactSettings = async () => {
     setLoading(true);
     try {
@@ -611,7 +586,6 @@ function Settings() {
     setIsEditingGeneral(false);
   };
 
-  // ========== TERMS & CONDITION ==========
   const fetchTerms = async () => {
     setLoading(true);
     try {
@@ -731,7 +705,6 @@ function Settings() {
     setTempTermsData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ========== THEME & INIT ==========
   const handleThemeChange = (isDark) => {
     setIsDarkMode(isDark);
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
@@ -779,122 +752,319 @@ function Settings() {
     return `/uploads/${imageValue}`;
   };
 
-  // ========== RENDER ==========
+  // ============================================================
+  // RENDER (Width အပြည့်ဖြစ်စေရန် CSS ကို အပြင်းအထန် ပြင်ဆင်ထား)
+  // ============================================================
   return (
     <div className={`dashboard-container ${isDarkMode ? 'dark-theme' : 'light-theme'}`}>
-      {/* ====== FIX: Sidebar နဲ့ ကွာနေတဲ့ နေရာလွတ် (White Gap) ကို ဖယ်ရှားပြီး width အပြည့်ယူမယ် ====== */}
       <style>{`
-        /* ----- Main Layout Fix (Sidebar နဲ့ ကပ်အောင် ချိန်ညှိထား) ----- */
-        .App {
-          display: flex !important;
+        /* ====== 1. မိဘဒြပ်စင် (App, main-content) ကို အကျယ်အပြည့်ယူရန် ====== */
+        .App,
+        .App .main-content,
+        #root,
+        #root > div {
           width: 100% !important;
-          min-height: 100vh !important;
-          overflow-x: hidden !important;
-        }
-        
-        .App .main-content {
-          flex: 1 !important;
-          min-width: 0 !important;
-          width: auto !important;
-          margin-left: 0 !important;
+          max-width: 100% !important;
           padding-left: 0 !important;
-          padding-right: 16px !important;
+          padding-right: 0 !important;
+          margin: 0 !important;
+          flex: 1 1 100% !important;
+          overflow-x: hidden !important;
           box-sizing: border-box !important;
-          transition: flex 0.3s ease;
         }
 
+        /* ====== 2. Dashboard Container (ဘယ် 170px ချန်ပြီး ကျန်တဲ့ width အကုန်ယူရန်) ====== */
         .dashboard-container {
           margin-left: 170px !important;
-          padding: 24px 32px !important;
+          padding: 16px 20px !important;
           min-height: 100vh !important;
-          transition: all 0.3s ease !important;
           width: calc(100vw - 170px) !important;
-          max-width: 100% !important;
+          max-width: calc(100vw - 170px) !important;
           box-sizing: border-box !important;
-          position: relative !important;
           overflow-x: hidden !important;
-          flex: 1 !important;
+          background: var(--bg-color, #f4f7fc);
+          color: var(--text-color, #1a1a2e);
+          flex: 0 0 auto !important; /* flex မှာ မဆန့်ဘဲ သတ်မှတ် width အတိုင်းထားရန် */
         }
 
-        /* မူရင်း Settings CSS အားလုံးကို အောက်မှာ ဆက်ထားမယ် */
-        .success-message { background: #198754; color: white; padding: 12px 24px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .settings-two-columns { display: flex; gap: 24px; flex-wrap: wrap; }
-        .admin-profile-card { flex: 1; min-width: 320px; background: var(--card-bg); border-radius: 20px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .settings-right-column { flex: 2; min-width: 500px; }
-        .profile-header { display: flex; gap: 20px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
-        .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: var(--card-bg); border: 2px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .dark-theme { --bg-color: #121212; --card-bg: #1e1e2f; --border-color: #2d2d44; --input-bg: #2a2a3f; --text-color: #e4e4f0; --hover-bg: #2d2d44; }
+        .light-theme { --bg-color: #f4f7fc; --card-bg: #ffffff; --border-color: #e2e8f0; --input-bg: #f8fafc; --text-color: #1a1a2e; --hover-bg: #f1f5f9; }
+
+        .success-message {
+          background: #198754;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+        }
+
+        /* ====== 3. Two Columns (ညာဘက်က ကျန်တဲ့နေရာအကုန်ယူရန်) ====== */
+        .settings-two-columns {
+          display: flex;
+          gap: 16px;
+          flex-wrap: nowrap; /* တစ်တန်းထဲထားရန် */
+          align-items: stretch;
+          width: 100% !important;
+        }
+
+        /* Left Column - fixed width 280px */
+        .admin-profile-card {
+          flex: 0 0 280px !important; /* သတ်မှတ်အရွယ်ထားရန် */
+          background: var(--card-bg);
+          border-radius: 16px;
+          padding: 16px;
+          border: 1px solid var(--border-color);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        /* Right Column - take all remaining space */
+        .settings-right-column {
+          flex: 1 !important; /* ကျန်နေတဲ့နေရာအကုန်ယူရန် */
+          min-width: 0 !important; /* flex ဆန့်အောင် */
+          display: flex;
+          flex-direction: column;
+          width: 100% !important;
+        }
+
+        /* Profile Header */
+        .profile-header {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+        }
+
+        .profile-avatar-large {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: var(--input-bg);
+          border: 2px solid var(--border-color);
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
         .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
-        .avatar-emoji { font-size: 48px; }
-        .profile-image-edit { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
-        .image-edit-btn, .image-save-btn { background: #0d6efd; color: white; border: none; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; }
-        .image-edit-btn:hover, .image-save-btn:hover { opacity: 0.8; }
+        .avatar-emoji { font-size: 36px; }
+
+        .profile-image-edit {
+          display: flex;
+          gap: 4px;
+          margin-top: 2px;
+          flex-wrap: wrap;
+        }
+        .image-edit-btn, .image-save-btn {
+          background: #0d6efd;
+          color: white;
+          border: none;
+          padding: 2px 10px;
+          border-radius: 10px;
+          font-size: 11px;
+          cursor: pointer;
+        }
         .image-save-btn { background: #198754; }
-        .profile-info h2 { margin: 0; }
-        .profile-name-input { font-size: 24px; font-weight: bold; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-color); }
-        .profile-details { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
-        .detail-item { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
-        .detail-item i { font-size: 18px; color: #0d6efd; width: 24px; text-align: center; }
+        .image-edit-btn:hover, .image-save-btn:hover { opacity: 0.8; }
+
+        .profile-info h2 {
+          margin: 0;
+          font-size: 20px;
+        }
+        .profile-name-input {
+          font-size: 20px;
+          font-weight: bold;
+          padding: 2px 6px;
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          background: var(--input-bg);
+          color: var(--text-color);
+        }
+
+        .profile-details {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 4px;
+          margin-bottom: 12px;
+        }
+        .detail-item {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          padding: 4px 0;
+          border-bottom: 1px solid var(--border-color);
+        }
+        .detail-item i { font-size: 15px; color: #0d6efd; width: 18px; text-align: center; }
         .detail-content { flex: 1; }
-        .detail-label { display: block; font-size: 12px; color: #6c757d; }
-        .detail-value { font-size: 14px; color: var(--text-color); }
-        .detail-input { width: 100%; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-color); }
-        .profile-edit-actions { display: flex; gap: 10px; margin-top: 12px; }
-        .cancel-edit-btn { background: #6c757d; color: white; border: none; padding: 8px 24px; border-radius: 12px; cursor: pointer; }
-        .save-profile-btn { background: #198754; color: white; border: none; padding: 8px 24px; border-radius: 12px; cursor: pointer; }
-        .edit-profile-btn { background: #6c757d; color: white; border: none; padding: 10px 24px; border-radius: 12px; cursor: pointer; width: 100%; text-align: center; }
+        .detail-label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; }
+        .detail-value { font-size: 13px; font-weight: 500; color: var(--text-color); }
+        .detail-input {
+          width: 100%;
+          padding: 2px 6px;
+          border: 1px solid var(--border-color);
+          border-radius: 4px;
+          background: var(--input-bg);
+          color: var(--text-color);
+          font-size: 13px;
+        }
+
+        .profile-edit-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .edit-profile-btn {
+          background: #6c757d;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          width: 100%;
+          text-align: center;
+          font-size: 13px;
+          transition: 0.15s;
+        }
         .edit-profile-btn:hover { opacity: 0.8; }
-        .settings-tabs-container { margin-bottom: 20px; }
-        .settings-tabs { display: flex; gap: 4px; background: var(--card-bg); border-radius: 16px; padding: 4px; border: 1px solid var(--border-color); }
-        .settings-tab { flex: 1; padding: 10px 16px; border: none; border-radius: 12px; background: transparent; color: var(--text-color); cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .cancel-edit-btn { background: #6c757d; color: white; border: none; padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .save-profile-btn { background: #198754; color: white; border: none; padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .settings-tabs-container { margin-bottom: 12px; }
+        .settings-tabs {
+        width:550px;
+  display: flex;
+  gap: 10px; 
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+
+.settings-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border: 1px solid var(--border-color); 
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  transition: 0.2s;
+  white-space: nowrap;
+  display: flex;            
+  align-items: center;     
+  justify-content: center;  
+  gap: 6px;               
+  text-align: center;      
+}
         .settings-tab.active { background: #0d6efd; color: white; }
         .settings-tab:hover:not(.active) { background: var(--hover-bg); }
-        .settings-section { background: var(--card-bg); border-radius: 20px; padding: 24px; border: 1px solid var(--border-color); }
-        .section-title { font-size: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .settings-form { display: flex; flex-direction: column; gap: 12px; }
-        .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
-        .form-row .form-group { flex: 1; min-width: 200px; }
-        .form-group label { display: block; font-weight: 500; margin-bottom: 4px; font-size: 14px; color: #6c757d; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); }
+
+        /* Right Column Section Card */
+        .settings-section {
+          background: var(--card-bg);
+          border-radius: 16px;
+          padding: 16px;
+          border: 1px solid var(--border-color);
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+        .settings-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+        }
+        .settings-form {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          flex: 1;
+        }
+
+        .section-title {
+          font-size: 18px;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .form-row .form-group { flex: 1; min-width: 180px; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 2px; font-size: 12px; color: #6c757d; }
+        .form-group input, .form-group select, .form-group textarea {
+          width: 100%;
+          padding: 4px 8px;
+          border-radius: 6px;
+          border: 1px solid var(--border-color);
+          background: var(--input-bg);
+          color: var(--text-color);
+          font-size: 13px;
+        }
         .form-group input:disabled, .form-group select:disabled { opacity: 0.6; cursor: not-allowed; }
-        .settings-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-        .btn-primary { background: #0d6efd; color: white; border: none; padding: 8px 20px; border-radius: 12px; cursor: pointer; font-weight: 500; }
+
+        .settings-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .btn-primary { background: #0d6efd; color: white; border: none; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 13px; }
         .btn-primary:hover { opacity: 0.8; }
-        .btn-secondary { background: #6c757d; color: white; border: none; padding: 8px 20px; border-radius: 12px; cursor: pointer; font-weight: 500; }
+        .btn-secondary { background: #6c757d; color: white; border: none; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 13px; }
         .btn-secondary:hover { opacity: 0.8; }
-        .btn-danger { background: #dc3545; color: white; border: none; padding: 8px 20px; border-radius: 12px; cursor: pointer; font-weight: 500; }
+        .btn-danger { background: #dc3545; color: white; border: none; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 13px; }
         .btn-danger:hover { opacity: 0.8; }
-        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+
+        .status-badge { padding: 2px 10px; border-radius: 16px; font-size: 11px; font-weight: 600; display: inline-block; }
         .status-badge.active { background: #19875420; color: #198754; }
         .status-badge.inactive { background: #dc354520; color: #dc3545; }
-        .switch-button { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+
+        .switch-button { display: flex; align-items: center; gap: 8px; cursor: pointer; }
         .switch-button input { display: none; }
-        .switch-slider { width: 48px; height: 26px; background: #ccc; border-radius: 13px; position: relative; transition: 0.3s; }
-        .switch-slider::after { content: ''; width: 22px; height: 22px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.3s; }
+        .switch-slider { width: 40px; height: 22px; background: #ccc; border-radius: 11px; position: relative; transition: 0.3s; flex-shrink: 0; }
+        .switch-slider::after { content: ''; width: 18px; height: 18px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.3s; }
         .switch-button input:checked + .switch-slider { background: #0d6efd; }
-        .switch-button input:checked + .switch-slider::after { left: 24px; }
-        .backup-info-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; display: flex; gap: 24px; flex-wrap: wrap; }
-        .backup-info-row { display: flex; gap: 8px; align-items: center; }
+        .switch-button input:checked + .switch-slider::after { left: 20px; }
+
+        .backup-info-card { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
+        .backup-info-row { display: flex; gap: 6px; align-items: center; font-size: 13px; }
         .backup-info-row span { color: #6c757d; }
-        .backup-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; }
-        .modal-content-small { background: var(--card-bg); border-radius: 24px; padding: 24px; max-width: 480px; width: 90%; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .modal-header h2 { margin: 0; font-size: 20px; }
-        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-color); }
-        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+        .backup-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+
+        .terms-preview { background: var(--input-bg); padding: 0.75rem; border-radius: 10px; border: 1px solid var(--border-color); max-height: 350px; overflow-y: auto; font-size: 13px; flex: 1; }
+        .terms-preview-title { padding: 0.25rem 0; font-weight: bold; font-size: 16px; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(2px); }
+        .modal-content-small { background: var(--card-bg); border-radius: 16px; padding: 16px; max-width: 420px; width: 90%; border: 1px solid var(--border-color); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .modal-header h2 { margin: 0; font-size: 18px; }
+        .close-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-color); }
+        .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
         .warning-text { color: #dc3545; font-weight: 500; }
-        .discard-btn { background: #6c757d; color: white; border: none; padding: 8px 20px; border-radius: 12px; cursor: pointer; }
+        .discard-btn { background: #6c757d; color: white; border: none; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .terms-preview { background: var(--input-bg); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); max-height: 400px; overflow-y: auto; }
-        .terms-preview-title { padding: 0.5rem 0; font-weight: bold; }
         .text-muted { color: #6c757d; }
+
+        /* Responsive (Mobile) */
         @media (max-width: 768px) {
-          .settings-two-columns { flex-direction: column; }
-          .admin-profile-card { min-width: auto; }
-          .settings-right-column { min-width: auto; }
+          .settings-two-columns { flex-wrap: wrap; flex-direction: column; }
+          .admin-profile-card { flex: 1 1 auto !important; min-width: auto; }
+          .settings-right-column { flex: 1 1 auto !important; min-width: auto; }
           .form-row { flex-direction: column; }
           .form-row .form-group { min-width: auto; }
+          .dashboard-container {
+            margin-left: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 12px 12px !important;
+          }
         }
       `}</style>
 
@@ -906,21 +1076,13 @@ function Settings() {
         </div>
       )}
 
+      {/* ====== MODALS (မူလအတိုင်း) ====== */}
       {showResetConfirm && (
         <div className="modal-overlay" onClick={() => setShowResetConfirm(false)}>
           <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Reset All Settings</h2>
-              <button className="close-btn" onClick={() => setShowResetConfirm(false)}><i className="bi bi-x-lg"></i></button>
-            </div>
-            <div className="modal-body">
-              <p>Are you sure you want to reset all settings to default values?</p>
-              <p className="warning-text">This action cannot be undone.</p>
-            </div>
-            <div className="modal-footer">
-              <button className="discard-btn" onClick={() => setShowResetConfirm(false)}>Cancel</button>
-              <button className="btn-danger" onClick={confirmReset}>Reset All</button>
-            </div>
+            <div className="modal-header"><h2>Reset All Settings</h2><button className="close-btn" onClick={() => setShowResetConfirm(false)}><i className="bi bi-x-lg"></i></button></div>
+            <div className="modal-body"><p>Are you sure you want to reset all settings to default values?</p><p className="warning-text">This action cannot be undone.</p></div>
+            <div className="modal-footer"><button className="discard-btn" onClick={() => setShowResetConfirm(false)}>Cancel</button><button className="btn-danger" onClick={confirmReset}>Reset All</button></div>
           </div>
         </div>
       )}
@@ -928,18 +1090,9 @@ function Settings() {
       {showDeleteContactConfirm && (
         <div className="modal-overlay" onClick={() => setShowDeleteContactConfirm(false)}>
           <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Confirm Delete</h2>
-              <button className="close-btn" onClick={() => setShowDeleteContactConfirm(false)}><i className="bi bi-x-lg"></i></button>
-            </div>
-            <div className="modal-body">
-              <p>Are you sure you want to delete the contact settings?</p>
-              <p className="warning-text">This action cannot be undone.</p>
-            </div>
-            <div className="modal-footer">
-              <button className="discard-btn" onClick={() => setShowDeleteContactConfirm(false)}>Cancel</button>
-              <button className="btn-danger" onClick={handleDeleteContact}>Delete</button>
-            </div>
+            <div className="modal-header"><h2>Confirm Delete</h2><button className="close-btn" onClick={() => setShowDeleteContactConfirm(false)}><i className="bi bi-x-lg"></i></button></div>
+            <div className="modal-body"><p>Are you sure you want to delete the contact settings?</p><p className="warning-text">This action cannot be undone.</p></div>
+            <div className="modal-footer"><button className="discard-btn" onClick={() => setShowDeleteContactConfirm(false)}>Cancel</button><button className="btn-danger" onClick={handleDeleteContact}>Delete</button></div>
           </div>
         </div>
       )}
@@ -947,346 +1100,55 @@ function Settings() {
       {showDeleteTermsConfirm && (
         <div className="modal-overlay" onClick={() => setShowDeleteTermsConfirm(false)}>
           <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Confirm Delete</h2>
-              <button className="close-btn" onClick={() => setShowDeleteTermsConfirm(false)}><i className="bi bi-x-lg"></i></button>
-            </div>
-            <div className="modal-body">
-              <p>Are you sure you want to delete the Terms & Condition?</p>
-              <p className="warning-text">This action cannot be undone.</p>
-            </div>
-            <div className="modal-footer">
-              <button className="discard-btn" onClick={() => setShowDeleteTermsConfirm(false)}>Cancel</button>
-              <button className="btn-danger" onClick={handleDeleteTerms}>Delete</button>
-            </div>
+            <div className="modal-header"><h2>Confirm Delete</h2><button className="close-btn" onClick={() => setShowDeleteTermsConfirm(false)}><i className="bi bi-x-lg"></i></button></div>
+            <div className="modal-body"><p>Are you sure you want to delete the Terms & Condition?</p><p className="warning-text">This action cannot be undone.</p></div>
+            <div className="modal-footer"><button className="discard-btn" onClick={() => setShowDeleteTermsConfirm(false)}>Cancel</button><button className="btn-danger" onClick={handleDeleteTerms}>Delete</button></div>
           </div>
         </div>
       )}
 
-      {/* ====== CHANGE PASSWORD MODAL ====== */}
       {showPasswordModal && (
         <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
           <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2><i className="bi bi-lock-fill"></i> Change Password</h2>
-              <button className="close-btn" onClick={() => setShowPasswordModal(false)}><i className="bi bi-x-lg"></i></button>
-            </div>
+            <div className="modal-header"><h2><i className="bi bi-lock-fill"></i> Change Password</h2><button className="close-btn" onClick={() => setShowPasswordModal(false)}><i className="bi bi-x-lg"></i></button></div>
             <div className="modal-body">
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label>New Password</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="form-control"
-                    placeholder="Enter new password (min 6 chars)"
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.2rem',
-                      color: 'var(--text-color)',
-                      opacity: 0.7,
-                      padding: '4px 8px'
-                    }}
-                  >
-                    <i className={showPassword ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
-                  </button>
-                </div>
-              </div>
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label>Confirm New Password</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="form-control"
-                    placeholder="Re-enter new password"
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.2rem',
-                      color: 'var(--text-color)',
-                      opacity: 0.7,
-                      padding: '4px 8px'
-                    }}
-                  >
-                    <i className={showConfirmPassword ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
-                  </button>
-                </div>
-              </div>
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}><label>New Password</label><div style={{display:'flex', alignItems:'center', gap:'6px'}}><input type={showPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 6 chars" style={{flex:1}} /><button onClick={() => setShowPassword(!showPassword)} style={{background:'none',border:'none',cursor:'pointer'}}><i className={showPassword ? "bi bi-eye-slash" : "bi bi-eye"}></i></button></div></div>
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}><label>Confirm Password</label><div style={{display:'flex', alignItems:'center', gap:'6px'}}><input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter" style={{flex:1}} /><button onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{background:'none',border:'none',cursor:'pointer'}}><i className={showConfirmPassword ? "bi bi-eye-slash" : "bi bi-eye"}></i></button></div></div>
             </div>
-            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button className="discard-btn" onClick={() => setShowPasswordModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleChangePassword} disabled={passwordLoading}>
-                {passwordLoading ? 'Changing...' : 'Change Password'}
-              </button>
-            </div>
+            <div className="modal-footer"><button className="discard-btn" onClick={() => setShowPasswordModal(false)}>Cancel</button><button className="btn-primary" onClick={handleChangePassword} disabled={passwordLoading}>{passwordLoading ? 'Changing...' : 'Change Password'}</button></div>
           </div>
         </div>
       )}
 
-      {/* ====== CREATE PASSCODE MODAL ====== */}
       {showCreatePasscodeModal && (
         <div className="modal-overlay" onClick={() => setShowCreatePasscodeModal(false)}>
           <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2><i className="bi bi-shield-lock-fill"></i> Create Passcode</h2>
-              <button className="close-btn" onClick={() => setShowCreatePasscodeModal(false)}><i className="bi bi-x-lg"></i></button>
-            </div>
+            <div className="modal-header"><h2><i className="bi bi-shield-lock-fill"></i> Create Passcode</h2><button className="close-btn" onClick={() => setShowCreatePasscodeModal(false)}><i className="bi bi-x-lg"></i></button></div>
             <div className="modal-body">
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label>Current Passcode <span style={{ color: 'red' }}>*</span></label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type={showCurrentPasscode ? "text" : "password"}
-                    maxLength="6"
-                    value={currentPasscodeForCreate}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      setCurrentPasscodeForCreate(value);
-                    }}
-                    className="form-control"
-                    placeholder="Enter current 6-digit passcode"
-                    style={{ flex: 1 }}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPasscode(!showCurrentPasscode)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.2rem',
-                      color: 'var(--text-color)',
-                      opacity: 0.7,
-                      padding: '4px 8px'
-                    }}
-                  >
-                    <i className={showCurrentPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                <label>New Passcode (6-digit number)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type={showNewPasscode ? "text" : "password"}
-                    maxLength="6"
-                    value={newPasscode}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      setNewPasscode(value);
-                    }}
-                    className="form-control"
-                    placeholder="Enter new 6-digit passcode"
-                    style={{ flex: 1 }}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPasscode(!showNewPasscode)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.2rem',
-                      color: 'var(--text-color)',
-                      opacity: 0.7,
-                      padding: '4px 8px'
-                    }}
-                  >
-                    <i className={showNewPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label>Confirm New Passcode</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type={showConfirmPasscode ? "text" : "password"}
-                    maxLength="6"
-                    value={confirmPasscode}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      setConfirmPasscode(value);
-                    }}
-                    className="form-control"
-                    placeholder="Re-enter passcode"
-                    style={{ flex: 1 }}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPasscode(!showConfirmPasscode)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.2rem',
-                      color: 'var(--text-color)',
-                      opacity: 0.7,
-                      padding: '4px 8px'
-                    }}
-                  >
-                    <i className={showConfirmPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
-                  </button>
-                </div>
-              </div>
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}><label>Current Passcode <span style={{color:'red'}}>*</span></label><div style={{display:'flex', alignItems:'center', gap:'6px'}}><input type={showCurrentPasscode ? "text" : "password"} maxLength="6" value={currentPasscodeForCreate} onChange={(e) => setCurrentPasscodeForCreate(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="6-digit" style={{flex:1}} /><button onClick={() => setShowCurrentPasscode(!showCurrentPasscode)} style={{background:'none',border:'none',cursor:'pointer'}}><i className={showCurrentPasscode ? "bi bi-eye-slash" : "bi bi-eye"}></i></button></div></div>
+              <div className="form-group" style={{ marginBottom: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}><label>New Passcode</label><div style={{display:'flex', alignItems:'center', gap:'6px'}}><input type={showNewPasscode ? "text" : "password"} maxLength="6" value={newPasscode} onChange={(e) => setNewPasscode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="6-digit" style={{flex:1}} /><button onClick={() => setShowNewPasscode(!showNewPasscode)} style={{background:'none',border:'none',cursor:'pointer'}}><i className={showNewPasscode ? "bi bi-eye-slash" : "bi bi-eye"}></i></button></div></div>
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}><label>Confirm Passcode</label><div style={{display:'flex', alignItems:'center', gap:'6px'}}><input type={showConfirmPasscode ? "text" : "password"} maxLength="6" value={confirmPasscode} onChange={(e) => setConfirmPasscode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="6-digit" style={{flex:1}} /><button onClick={() => setShowConfirmPasscode(!showConfirmPasscode)} style={{background:'none',border:'none',cursor:'pointer'}}><i className={showConfirmPasscode ? "bi bi-eye-slash" : "bi bi-eye"}></i></button></div></div>
             </div>
-            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button className="discard-btn" onClick={() => setShowCreatePasscodeModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleCreatePasscode} disabled={passcodeLoading}>
-                {passcodeLoading ? 'Creating...' : 'Create Passcode'}
-              </button>
-            </div>
+            <div className="modal-footer"><button className="discard-btn" onClick={() => setShowCreatePasscodeModal(false)}>Cancel</button><button className="btn-primary" onClick={handleCreatePasscode} disabled={passcodeLoading}>{passcodeLoading ? 'Creating...' : 'Create Passcode'}</button></div>
           </div>
         </div>
       )}
 
-      {/* ====== CHANGE PASSCODE MODAL ====== */}
       {showChangePasscodeModal && (
         <div className="modal-overlay" onClick={() => setShowChangePasscodeModal(false)}>
           <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2><i className="bi bi-shield-lock-fill"></i> Change Passcode</h2>
-              <button className="close-btn" onClick={() => setShowChangePasscodeModal(false)}><i className="bi bi-x-lg"></i></button>
-            </div>
+            <div className="modal-header"><h2><i className="bi bi-shield-lock-fill"></i> Change Passcode</h2><button className="close-btn" onClick={() => setShowChangePasscodeModal(false)}><i className="bi bi-x-lg"></i></button></div>
             <div className="modal-body">
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label>Current Passcode (6-digit number)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type={showCurrentPasscode ? "text" : "password"}
-                    maxLength="6"
-                    value={currentPasscodeForHeader}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      setCurrentPasscodeForHeader(value);
-                    }}
-                    className="form-control"
-                    placeholder="Enter current 6-digit passcode"
-                    style={{ flex: 1 }}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPasscode(!showCurrentPasscode)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.2rem',
-                      color: 'var(--text-color)',
-                      opacity: 0.7,
-                      padding: '4px 8px'
-                    }}
-                  >
-                    <i className={showCurrentPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                <label>New Passcode (6-digit number)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type={showNewPasscode ? "text" : "password"}
-                    maxLength="6"
-                    value={newPasscode}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      setNewPasscode(value);
-                    }}
-                    className="form-control"
-                    placeholder="Enter new 6-digit passcode"
-                    style={{ flex: 1 }}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPasscode(!showNewPasscode)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.2rem',
-                      color: 'var(--text-color)',
-                      opacity: 0.7,
-                      padding: '4px 8px'
-                    }}
-                  >
-                    <i className={showNewPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label>Confirm New Passcode</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type={showConfirmPasscode ? "text" : "password"}
-                    maxLength="6"
-                    value={confirmPasscode}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                      setConfirmPasscode(value);
-                    }}
-                    className="form-control"
-                    placeholder="Re-enter new passcode"
-                    style={{ flex: 1 }}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPasscode(!showConfirmPasscode)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.2rem',
-                      color: 'var(--text-color)',
-                      opacity: 0.7,
-                      padding: '4px 8px'
-                    }}
-                  >
-                    <i className={showConfirmPasscode ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"}></i>
-                  </button>
-                </div>
-              </div>
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}><label>Current Passcode</label><div style={{display:'flex', alignItems:'center', gap:'6px'}}><input type={showCurrentPasscode ? "text" : "password"} maxLength="6" value={currentPasscodeForHeader} onChange={(e) => setCurrentPasscodeForHeader(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="6-digit" style={{flex:1}} /><button onClick={() => setShowCurrentPasscode(!showCurrentPasscode)} style={{background:'none',border:'none',cursor:'pointer'}}><i className={showCurrentPasscode ? "bi bi-eye-slash" : "bi bi-eye"}></i></button></div></div>
+              <div className="form-group" style={{ marginBottom: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}><label>New Passcode</label><div style={{display:'flex', alignItems:'center', gap:'6px'}}><input type={showNewPasscode ? "text" : "password"} maxLength="6" value={newPasscode} onChange={(e) => setNewPasscode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="6-digit" style={{flex:1}} /><button onClick={() => setShowNewPasscode(!showNewPasscode)} style={{background:'none',border:'none',cursor:'pointer'}}><i className={showNewPasscode ? "bi bi-eye-slash" : "bi bi-eye"}></i></button></div></div>
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}><label>Confirm Passcode</label><div style={{display:'flex', alignItems:'center', gap:'6px'}}><input type={showConfirmPasscode ? "text" : "password"} maxLength="6" value={confirmPasscode} onChange={(e) => setConfirmPasscode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="6-digit" style={{flex:1}} /><button onClick={() => setShowConfirmPasscode(!showConfirmPasscode)} style={{background:'none',border:'none',cursor:'pointer'}}><i className={showConfirmPasscode ? "bi bi-eye-slash" : "bi bi-eye"}></i></button></div></div>
             </div>
-            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '1rem' }}>
-              <button className="discard-btn" onClick={() => setShowChangePasscodeModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleChangePasscode} disabled={passcodeLoading}>
-                {passcodeLoading ? 'Changing...' : 'Change Passcode'}
-              </button>
-            </div>
+            <div className="modal-footer"><button className="discard-btn" onClick={() => setShowChangePasscodeModal(false)}>Cancel</button><button className="btn-primary" onClick={handleChangePasscode} disabled={passcodeLoading}>{passcodeLoading ? 'Changing...' : 'Change Passcode'}</button></div>
           </div>
         </div>
       )}
 
+      {/* ====== MAIN TWO-COLUMN CONTENT ====== */}
       <div className="settings-two-columns">
         {/* LEFT - PROFILE CARD */}
         <div className="admin-profile-card">
@@ -1294,131 +1156,45 @@ function Settings() {
             <div className="profile-image-section">
               <div className="profile-avatar-large">
                 {tempProfile.profileImage ? (
-                  <img 
-                    src={getDisplayImageUrl(tempProfile.profileImage)} 
-                    alt="Profile" 
-                    className="profile-img"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-                    }}
-                  />
-                ) : (
-                  <span className="avatar-emoji">👤</span>
-                )}
+                  <img src={getDisplayImageUrl(tempProfile.profileImage)} alt="Profile" onError={(e) => { e.target.onerror = null; e.target.src = 'https://cdn-icons-png.flaticon.com/512/149/149071.png'; }} />
+                ) : <span className="avatar-emoji">👤</span>}
               </div>
               {isEditingProfile && (
                 <div className="profile-image-edit">
-                  <button type="button" className="image-edit-btn" onClick={() => fileInputRef.current.click()} disabled={uploadingImage}>
-                    <i className="bi bi-camera-fill"></i> Change Photo
-                  </button>
+                  <button type="button" className="image-edit-btn" onClick={() => fileInputRef.current.click()} disabled={uploadingImage}><i className="bi bi-camera-fill"></i> Change Photo</button>
                   <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleImageChange} />
-                  {profileImageFile && (
-                    <button type="button" className="image-save-btn" onClick={saveProfileImage} disabled={uploadingImage}>
-                      {uploadingImage ? 'Uploading...' : 'Save Photo'}
-                    </button>
-                  )}
+                  {profileImageFile && <button type="button" className="image-save-btn" onClick={saveProfileImage} disabled={uploadingImage}>{uploadingImage ? 'Uploading...' : 'Save Photo'}</button>}
                 </div>
               )}
             </div>
             <div className="profile-info">
-              {isEditingProfile ? (
-                <input type="text" name="fullName" value={tempProfile.fullName} onChange={handleProfileChange} className="profile-name-input" />
-              ) : (
-                <h2>{adminProfile.fullName || 'Admin User'}</h2>
-              )}
+              {isEditingProfile ? <input type="text" name="fullName" value={tempProfile.fullName} onChange={handleProfileChange} className="profile-name-input" /> : <h2>{adminProfile.fullName || 'Admin User'}</h2>}
               <span className={getStatusBadgeClass('Active')}>Active</span>
             </div>
           </div>
 
           <div className="profile-details">
-            <div className="detail-item">
-              <i className="bi bi-envelope-fill"></i>
-              <div className="detail-content">
-                <span className="detail-label">Email</span>
-                {isEditingProfile ? (
-                  <input type="email" name="email" value={tempProfile.email} onChange={handleProfileChange} className="detail-input" />
-                ) : (
-                  <span className="detail-value">{adminProfile.email || '-'}</span>
-                )}
-              </div>
-            </div>
-            <div className="detail-item">
-              <i className="bi bi-telephone-fill"></i>
-              <div className="detail-content">
-                <span className="detail-label">Phone</span>
-                {isEditingProfile ? (
-                  <input type="text" name="phone" value={tempProfile.phone} onChange={handleProfileChange} className="detail-input" />
-                ) : (
-                  <span className="detail-value">{adminProfile.phone || '-'}</span>
-                )}
-              </div>
-            </div>
-            <div className="detail-item">
-              <i className="bi bi-geo-alt-fill"></i>
-              <div className="detail-content">
-                <span className="detail-label">Address</span>
-                {isEditingProfile ? (
-                  <input type="text" name="address" value={tempProfile.address} onChange={handleProfileChange} className="detail-input" />
-                ) : (
-                  <span className="detail-value">{adminProfile.address || '-'}</span>
-                )}
-              </div>
-            </div>
-            <div className="detail-item">
-              <i className="bi bi-card-text"></i>
-              <div className="detail-content">
-                <span className="detail-label">NRC</span>
-                {isEditingProfile ? (
-                  <input type="text" name="nrc" value={tempProfile.nrc} onChange={handleProfileChange} className="detail-input" />
-                ) : (
-                  <span className="detail-value">{adminProfile.nrc || '-'}</span>
-                )}
-              </div>
-            </div>
-            <div className="detail-item">
-              <i className="bi bi-calendar-date"></i>
-              <div className="detail-content">
-                <span className="detail-label">Date of Birth</span>
-                {isEditingProfile ? (
-                  <input type="date" name="dateOfBirth" value={tempProfile.dateOfBirth} onChange={handleProfileChange} className="detail-input" />
-                ) : (
-                  <span className="detail-value">{adminProfile.dateOfBirth || '-'}</span>
-                )}
-              </div>
-            </div>
-            <div className="detail-item">
-              <i className="bi bi-calendar-check-fill"></i>
-              <div className="detail-content">
-                <span className="detail-label">Joined Date</span>
-                <span className="detail-value">{adminProfile.joinedDate || '-'}</span>
-              </div>
-            </div>
+            <div className="detail-item"><i className="bi bi-envelope-fill"></i><div className="detail-content"><span className="detail-label">Email</span>{isEditingProfile ? <input type="email" name="email" value={tempProfile.email} onChange={handleProfileChange} className="detail-input" /> : <span className="detail-value">{adminProfile.email || '-'}</span>}</div></div>
+            <div className="detail-item"><i className="bi bi-telephone-fill"></i><div className="detail-content"><span className="detail-label">Phone</span>{isEditingProfile ? <input type="text" name="phone" value={tempProfile.phone} onChange={handleProfileChange} className="detail-input" /> : <span className="detail-value">{adminProfile.phone || '-'}</span>}</div></div>
+            <div className="detail-item"><i className="bi bi-geo-alt-fill"></i><div className="detail-content"><span className="detail-label">Address</span>{isEditingProfile ? <input type="text" name="address" value={tempProfile.address} onChange={handleProfileChange} className="detail-input" /> : <span className="detail-value">{adminProfile.address || '-'}</span>}</div></div>
+            <div className="detail-item"><i className="bi bi-card-text"></i><div className="detail-content"><span className="detail-label">NRC</span>{isEditingProfile ? <input type="text" name="nrc" value={tempProfile.nrc} onChange={handleProfileChange} className="detail-input" /> : <span className="detail-value">{adminProfile.nrc || '-'}</span>}</div></div>
+            <div className="detail-item"><i className="bi bi-calendar-date"></i><div className="detail-content"><span className="detail-label">Date of Birth</span>{isEditingProfile ? <input type="date" name="dateOfBirth" value={tempProfile.dateOfBirth} onChange={handleProfileChange} className="detail-input" /> : <span className="detail-value">{adminProfile.dateOfBirth || '-'}</span>}</div></div>
+            <div className="detail-item"><i className="bi bi-calendar-check-fill"></i><div className="detail-content"><span className="detail-label">Joined Date</span><span className="detail-value">{adminProfile.joinedDate || '-'}</span></div></div>
           </div>
 
           {isEditingProfile ? (
             <div className="profile-edit-actions">
               <button className="cancel-edit-btn" onClick={handleCancelEdit}>Cancel</button>
-              <button className="save-profile-btn" onClick={handleSaveProfile} disabled={loading || uploadingImage}>
-                {loading ? 'Saving...' : 'Save Profile'}
-              </button>
+              <button className="save-profile-btn" onClick={handleSaveProfile} disabled={loading || uploadingImage}>{loading ? 'Saving...' : 'Save Profile'}</button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button className="edit-profile-btn" onClick={() => setIsEditingProfile(true)}>
-                <i className="bi bi-pencil-square"></i> Edit Profile
-              </button>
-              <button className="edit-profile-btn" style={{ background: '#0d6efd', marginTop: '0' }} onClick={() => setShowPasswordModal(true)}>
-                <i className="bi bi-lock-fill"></i> Change Password
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <button className="edit-profile-btn" onClick={() => setIsEditingProfile(true)}><i className="bi bi-pencil-square"></i> Edit Profile</button>
+              <button className="edit-profile-btn" style={{ background: '#0d6efd' }} onClick={() => setShowPasswordModal(true)}><i className="bi bi-lock-fill"></i> Change Password</button>
               {!hasPasscode ? (
-                <button className="edit-profile-btn" style={{ background: '#28a745', marginTop: '0' }} onClick={() => setShowCreatePasscodeModal(true)}>
-                  <i className="bi bi-plus-circle-fill"></i> Create Passcode
-                </button>
+                <button className="edit-profile-btn" style={{ background: '#28a745' }} onClick={() => setShowCreatePasscodeModal(true)}><i className="bi bi-plus-circle-fill"></i> Create Passcode</button>
               ) : (
-                <button className="edit-profile-btn" style={{ background: '#6f42c1', marginTop: '0' }} onClick={() => setShowChangePasscodeModal(true)}>
-                  <i className="bi bi-shield-lock-fill"></i> Change Passcode
-                </button>
+                <button className="edit-profile-btn" style={{ background: '#6f42c1' }} onClick={() => setShowChangePasscodeModal(true)}><i className="bi bi-shield-lock-fill"></i> Change Passcode</button>
               )}
             </div>
           )}
@@ -1428,15 +1204,9 @@ function Settings() {
         <div className="settings-right-column">
           <div className="settings-tabs-container">
             <div className="settings-tabs">
-              <button className={getTabClass('general')} onClick={() => setActiveTab('general')}>
-                <i className="bi bi-telephone-fill"></i> Contact
-              </button>
-              <button className={getTabClass('terms')} onClick={() => setActiveTab('terms')}>
-                <i className="bi bi-file-text-fill"></i> Terms & Condition
-              </button>
-              <button className={getTabClass('backup')} onClick={() => setActiveTab('backup')}>
-                <i className="bi bi-database-fill"></i> Backup
-              </button>
+              <button className={getTabClass('general')} onClick={() => setActiveTab('general')}><i className="bi bi-telephone-fill"></i> Contact</button>
+              <button className={getTabClass('terms')} onClick={() => setActiveTab('terms')}><i className="bi bi-file-text-fill"></i> Terms & Condition</button>
+              <button className={getTabClass('backup')} onClick={() => setActiveTab('backup')}><i className="bi bi-database-fill"></i> Backup</button>
             </div>
           </div>
 
@@ -1446,38 +1216,17 @@ function Settings() {
               <div className="settings-section">
                 <h2 className="section-title"><i className="bi bi-telephone-fill"></i> Contact Settings</h2>
                 <div className="settings-form">
-                  <div className="form-row">
-                    <div className="form-group"><label>Name</label><input type="text" name="name" value={tempContactSettings.name} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="Contact person name" /></div>
-                    <div className="form-group"><label>Email</label><input type="email" name="email" value={tempContactSettings.email} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="contact@example.com" /></div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group"><label>📞 Phone 1</label><input type="text" name="phone1" value={tempContactSettings.phone1} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="+959xxxxxxxx" /></div>
-                    <div className="form-group"><label>📞 Phone 2</label><input type="text" name="phone2" value={tempContactSettings.phone2} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="+959xxxxxxxx" /></div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group"><label>📢 Telegram Channel 1</label><input type="url" name="telegram_channel1" value={tempContactSettings.telegram_channel1} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="https://t.me/..." /></div>
-                    <div className="form-group"><label>📢 Telegram Channel 2</label><input type="url" name="telegram_channel2" value={tempContactSettings.telegram_channel2} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="https://t.me/..." /></div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group"><label>📱 Telegram Username 1</label><input type="text" name="telegram_name1" value={tempContactSettings.telegram_name1} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="@username" /></div>
-                    <div className="form-group"><label>📱 Telegram Username 2</label><input type="text" name="telegram_name2" value={tempContactSettings.telegram_name2} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="@username" /></div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group"><label>💬 Viber Phone 1</label><input type="text" name="viber_phone1" value={tempContactSettings.viber_phone1} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="+959xxxxxxxx" /></div>
-                    <div className="form-group"><label>💬 Viber Phone 2</label><input type="text" name="viber_phone2" value={tempContactSettings.viber_phone2} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="+959xxxxxxxx" /></div>
-                  </div>
+                  <div className="form-row"><div className="form-group"><label>Name</label><input type="text" name="name" value={tempContactSettings.name} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="Contact person name" /></div><div className="form-group"><label>Email</label><input type="email" name="email" value={tempContactSettings.email} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="contact@example.com" /></div></div>
+                  <div className="form-row"><div className="form-group"><label>📞 Phone 1</label><input type="text" name="phone1" value={tempContactSettings.phone1} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="+959xxxxxxxx" /></div><div className="form-group"><label>📞 Phone 2</label><input type="text" name="phone2" value={tempContactSettings.phone2} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="+959xxxxxxxx" /></div></div>
+                  <div className="form-row"><div className="form-group"><label>📢 Telegram Channel 1</label><input type="url" name="telegram_channel1" value={tempContactSettings.telegram_channel1} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="https://t.me/..." /></div><div className="form-group"><label>📢 Telegram Channel 2</label><input type="url" name="telegram_channel2" value={tempContactSettings.telegram_channel2} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="https://t.me/..." /></div></div>
+                  <div className="form-row"><div className="form-group"><label>📱 Telegram Username 1</label><input type="text" name="telegram_name1" value={tempContactSettings.telegram_name1} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="@username" /></div><div className="form-group"><label>📱 Telegram Username 2</label><input type="text" name="telegram_name2" value={tempContactSettings.telegram_name2} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="@username" /></div></div>
+                  <div className="form-row"><div className="form-group"><label>💬 Viber Phone 1</label><input type="text" name="viber_phone1" value={tempContactSettings.viber_phone1} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="+959xxxxxxxx" /></div><div className="form-group"><label>💬 Viber Phone 2</label><input type="text" name="viber_phone2" value={tempContactSettings.viber_phone2} onChange={handleGeneralInputChange} disabled={!isEditingGeneral} placeholder="+959xxxxxxxx" /></div></div>
                 </div>
                 <div className="settings-actions">
                   {!isEditingGeneral ? (
-                    <>
-                      <button className="btn-primary" onClick={handleEditGeneral} disabled={loading}><i className="bi bi-pencil-square"></i> Edit</button>
-                      {contactSettings.id && (<button className="btn-danger" onClick={() => setShowDeleteContactConfirm(true)} disabled={loading}><i className="bi bi-trash-fill"></i> Delete</button>)}
-                    </>
+                    <><button className="btn-primary" onClick={handleEditGeneral} disabled={loading}><i className="bi bi-pencil-square"></i> Edit</button>{contactSettings.id && <button className="btn-danger" onClick={() => setShowDeleteContactConfirm(true)} disabled={loading}><i className="bi bi-trash-fill"></i> Delete</button>}</>
                   ) : (
-                    <>
-                      <button className="btn-secondary" onClick={handleCancelGeneral}><i className="bi bi-x-lg"></i> Cancel</button>
-                      <button className="btn-primary" onClick={saveGeneralSettings} disabled={loading}>{loading ? <i className="bi bi-arrow-repeat spin"></i> : <i className="bi bi-check-lg"></i>} Save Changes</button>
-                    </>
+                    <><button className="btn-secondary" onClick={handleCancelGeneral}><i className="bi bi-x-lg"></i> Cancel</button><button className="btn-primary" onClick={saveGeneralSettings} disabled={loading}>{loading ? <i className="bi bi-arrow-repeat spin"></i> : <i className="bi bi-check-lg"></i>} Save Changes</button></>
                   )}
                   <button className="btn-secondary" onClick={handleResetSettings}><i className="bi bi-arrow-repeat"></i> Reset to Default</button>
                 </div>
@@ -1489,20 +1238,13 @@ function Settings() {
               <div className="settings-section">
                 <h2 className="section-title"><i className="bi bi-file-text-fill"></i> Terms & Condition</h2>
                 <div className="settings-form">
-                  <div className="form-group">
-                    <label>Title (Optional)</label>
-                    {isEditingTerms ? (
-                      <input type="text" name="title" value={tempTermsData.title} onChange={handleTermsInputChange} className="form-control" placeholder="e.g., Terms of Service" />
-                    ) : (
-                      <div className="terms-preview-title" style={{ padding: '0.5rem 0', fontWeight: 'bold' }}>{termsData.title || '(No title)'}</div>
-                    )}
-                  </div>
-                  <div className="form-group">
+                  <div className="form-group"><label>Title (Optional)</label>{isEditingTerms ? <input type="text" name="title" value={tempTermsData.title} onChange={handleTermsInputChange} placeholder="e.g., Terms of Service" /> : <div className="terms-preview-title">{termsData.title || '(No title)'}</div>}</div>
+                  <div className="form-group" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <label>Content (Required)</label>
                     {isEditingTerms ? (
-                      <textarea name="content" rows="12" value={tempTermsData.content} onChange={handleTermsInputChange} className="form-control" placeholder="Enter the full terms and conditions here..." style={{ width: '100%', fontFamily: 'inherit' }} />
+                      <textarea name="content" rows="10" value={tempTermsData.content} onChange={handleTermsInputChange} placeholder="Enter the full terms..." style={{ width: '100%', fontFamily: 'inherit', flex: 1 }} />
                     ) : (
-                      <div className="terms-preview" style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', maxHeight: '400px', overflowY: 'auto' }}>
+                      <div className="terms-preview">
                         {termsData.content ? <div dangerouslySetInnerHTML={{ __html: termsData.content.replace(/\n/g, '<br/>') }} /> : <p className="text-muted">No content yet.</p>}
                       </div>
                     )}
@@ -1510,15 +1252,9 @@ function Settings() {
                 </div>
                 <div className="settings-actions">
                   {!isEditingTerms ? (
-                    <>
-                      <button className="btn-primary" onClick={handleEditTerms} disabled={loading}><i className="bi bi-pencil-square"></i> Edit</button>
-                      {termsData.id && (<button className="btn-danger" onClick={() => setShowDeleteTermsConfirm(true)} disabled={loading}><i className="bi bi-trash-fill"></i> Delete</button>)}
-                    </>
+                    <><button className="btn-primary" onClick={handleEditTerms} disabled={loading}><i className="bi bi-pencil-square"></i> Edit</button>{termsData.id && <button className="btn-danger" onClick={() => setShowDeleteTermsConfirm(true)} disabled={loading}><i className="bi bi-trash-fill"></i> Delete</button>}</>
                   ) : (
-                    <>
-                      <button className="btn-secondary" onClick={handleCancelTerms}><i className="bi bi-x-lg"></i> Cancel</button>
-                      <button className="btn-primary" onClick={handleSaveTerms} disabled={loading}>{loading ? <i className="bi bi-arrow-repeat spin"></i> : <i className="bi bi-check-lg"></i>} Save Changes</button>
-                    </>
+                    <><button className="btn-secondary" onClick={handleCancelTerms}><i className="bi bi-x-lg"></i> Cancel</button><button className="btn-primary" onClick={handleSaveTerms} disabled={loading}>{loading ? <i className="bi bi-arrow-repeat spin"></i> : <i className="bi bi-check-lg"></i>} Save Changes</button></>
                   )}
                   <button className="btn-secondary" onClick={handleResetTerms}><i className="bi bi-arrow-repeat"></i> Reset to Default</button>
                 </div>
@@ -1530,31 +1266,14 @@ function Settings() {
               <div className="settings-section">
                 <h2 className="section-title"><i className="bi bi-database-fill"></i> Backup Settings</h2>
                 <div className="settings-form">
-                  <div className="backup-info-card">
-                    <div className="backup-info-row"><span>Last Backup:</span><strong>{backupSettings.lastBackup}</strong></div>
-                    <div className="backup-info-row"><span>Backup Size:</span><strong>{backupSettings.backupSize}</strong></div>
-                  </div>
-                  <div className="switch-group">
-                    <SwitchButton checked={backupSettings.autoBackup} onChange={(checked) => setBackupSettings((prev) => ({ ...prev, autoBackup: checked }))} label="Enable Automatic Backups" />
-                  </div>
+                  <div className="backup-info-card"><div className="backup-info-row"><span>Last Backup:</span><strong>{backupSettings.lastBackup}</strong></div><div className="backup-info-row"><span>Backup Size:</span><strong>{backupSettings.backupSize}</strong></div></div>
+                  <div className="switch-group"><SwitchButton checked={backupSettings.autoBackup} onChange={(checked) => setBackupSettings((prev) => ({ ...prev, autoBackup: checked }))} label="Enable Automatic Backups" /></div>
                   {backupSettings.autoBackup && (
-                    <>
-                      <div className="form-row">
-                        <div className="form-group"><label>Backup Frequency</label><select value={backupSettings.backupFrequency} onChange={(e) => setBackupSettings((prev) => ({ ...prev, backupFrequency: e.target.value }))}><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
-                        <div className="form-group"><label>Backup Time</label><input type="time" value={backupSettings.backupTime} onChange={(e) => setBackupSettings((prev) => ({ ...prev, backupTime: e.target.value }))} /></div>
-                      </div>
-                      <div className="form-group"><label>Backup Location</label><select value={backupSettings.backupLocation} onChange={(e) => setBackupSettings((prev) => ({ ...prev, backupLocation: e.target.value }))}><option value="local">Local Server</option><option value="cloud">Cloud Storage</option><option value="both">Both</option></select></div>
-                    </>
+                    <><div className="form-row"><div className="form-group"><label>Backup Frequency</label><select value={backupSettings.backupFrequency} onChange={(e) => setBackupSettings((prev) => ({ ...prev, backupFrequency: e.target.value }))}><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div><div className="form-group"><label>Backup Time</label><input type="time" value={backupSettings.backupTime} onChange={(e) => setBackupSettings((prev) => ({ ...prev, backupTime: e.target.value }))} /></div></div><div className="form-group"><label>Backup Location</label><select value={backupSettings.backupLocation} onChange={(e) => setBackupSettings((prev) => ({ ...prev, backupLocation: e.target.value }))}><option value="local">Local Server</option><option value="cloud">Cloud Storage</option><option value="both">Both</option></select></div></>
                   )}
-                  <div className="backup-actions">
-                    <button className="btn-secondary" onClick={performBackup}><i className="bi bi-cloud-upload"></i> Backup Now</button>
-                    <button className="btn-secondary"><i className="bi bi-download"></i> Download Latest Backup</button>
-                  </div>
+                  <div className="backup-actions"><button className="btn-secondary" onClick={performBackup}><i className="bi bi-cloud-upload"></i> Backup Now</button><button className="btn-secondary"><i className="bi bi-download"></i> Download Latest Backup</button></div>
                 </div>
-                <div className="settings-actions">
-                  <button className="btn-secondary" onClick={handleResetSettings}><i className="bi bi-arrow-repeat"></i> Reset to Default</button>
-                  <button className="btn-primary" onClick={handleSaveSettings}><i className="bi bi-check-lg"></i> Save Changes</button>
-                </div>
+                <div className="settings-actions"><button className="btn-secondary" onClick={handleResetSettings}><i className="bi bi-arrow-repeat"></i> Reset to Default</button><button className="btn-primary" onClick={handleSaveSettings}><i className="bi bi-check-lg"></i> Save Changes</button></div>
               </div>
             )}
           </div>
