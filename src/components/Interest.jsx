@@ -40,6 +40,10 @@ function Interest() {
   const [passcodeError, setPasscodeError] = useState('');
   const inputRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
 
+  // ===== FIX: Search Input အတွက် Ref နဲ့ Key ထည့်ထားတယ် =====
+  const [searchInputKey, setSearchInputKey] = useState(0);
+  const searchInputRef = useRef(null);
+
   useEffect(() => {
     document.body.classList.toggle('dark-mode', isDarkMode);
     document.body.classList.toggle('light-mode', !isDarkMode);
@@ -275,6 +279,15 @@ function Interest() {
       setSearchTerm('');
       setSelectedTransaction(null);
       setShowTransactionDropdown(false);
+
+      // ===== FIX: အတိုးပေးပြီးတိုင်း Search Input ကို ပြန်လည် အသက်သွင်းပေးတယ် =====
+      setSearchInputKey(prev => prev + 1); // Component အသစ်ပြန် mount လုပ်တယ်
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus(); // Auto Focus ပြန်ပေးတယ်
+        }
+      }, 100);
+
     } catch (error) {
       console.error('❌ Dividend error:', error);
       if (error.response) {
@@ -434,7 +447,17 @@ function Interest() {
           <div className="form-group">
             <label>Select Shareholder (Search by ID or Name)</label>
             <div className="searchable-select">
-              <input type="text" className="search-input" placeholder="🔍 Enter ID or Name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} disabled={loading || shareholdersList.length === 0} />
+              {/* ===== FIX: key, ref ထည့်ပြီး disabled ကို loading ပေါ်ပဲမူတည်အောင်ပြင်ထား ===== */}
+              <input
+                key={searchInputKey}
+                ref={searchInputRef}
+                type="text"
+                className="search-input"
+                placeholder="🔍 Enter ID or Name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={loading}
+              />
               {searchTerm && !loading && shareholdersList.length > 0 && (
                 <ul className="dropdown-list">
                   {filteredList.length === 0 && <li>No results found</li>}
