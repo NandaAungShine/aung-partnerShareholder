@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  base: './',
   server: {
     proxy: {
       '/auth': {
@@ -15,7 +16,6 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      
       '^/(.*\\.(webp|png|jpg|jpeg|gif|svg|ico))$': {
         target: 'http://130.94.21.185:5000',
         changeOrigin: true,

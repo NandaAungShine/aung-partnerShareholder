@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Login from './components/Login';
@@ -29,6 +29,21 @@ const MainLayout = ({ children }) => {
 };
 
 function App() {
+  useEffect(() => {
+    const handleGlobalFocus = (e) => {
+      if (document.activeElement === document.body) {
+        const clickedInput = e.target.closest('input, textarea, [contenteditable="true"], select');
+        
+        if (clickedInput) {
+          clickedInput.focus();
+        }
+      }
+    };
+
+    window.addEventListener('click', handleGlobalFocus);
+    return () => window.removeEventListener('click', handleGlobalFocus);
+  }, []);
+
   return (
     <Router>
       <Routes> 
@@ -91,7 +106,7 @@ function App() {
           } 
         />
 
-        {/* 👇 NEW: Interest Request Route */}
+       
         <Route 
           path="/interest-request" 
           element={
