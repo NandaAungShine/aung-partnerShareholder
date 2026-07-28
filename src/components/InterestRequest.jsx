@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from './Header';
 import axios from 'axios';
 
+// Alert Component ကို Import လုပ်ပါ
+import Alert from '../components/Alert';
+
 const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? 'http://130.94.21.185:5000'
   : '';
@@ -24,7 +27,14 @@ function InterestRequest() {
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState('');
   
-  // ===== Passcode Modal State =====
+  // Alert Modal State
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '' });
+  const showAlert = (message, title = 'Notification') => {
+    setAlertModal({ isOpen: true, title, message });
+  };
+  const closeAlert = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
+
+  // Passcode Modal State
   const [showPasscodeModal, setShowPasscodeModal] = useState(false);
   const [passcodeDigits, setPasscodeDigits] = useState(['', '', '', '', '', '']);
   const [passcodeError, setPasscodeError] = useState('');
@@ -32,13 +42,11 @@ function InterestRequest() {
   const [pendingActionParams, setPendingActionParams] = useState(null);
   const inputRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
 
-  // ===== Filter & Search =====
+  // Filter & Search
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  // ============================================================
-  // 1. FETCH WITHDRAW REQUESTS FROM API
-  // ============================================================
+  // Fetch Withdraw Requests
   const fetchWithdrawRequests = async () => {
     setLoading(true);
     setApiError('');
@@ -74,9 +82,7 @@ function InterestRequest() {
     fetchWithdrawRequests();
   }, []);
 
-  // ============================================================
-  // 2. THEME HANDLING
-  // ============================================================
+  // Theme Handling
   useEffect(() => {
     document.body.classList.toggle('dark-mode', isDarkMode);
     document.body.classList.toggle('light-mode', !isDarkMode);
@@ -87,14 +93,11 @@ function InterestRequest() {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
   };
 
-  // ============================================================
-  // 3. UPDATE STATUS API + UPDATE last-amount
-  // ============================================================
+  // Update Status API + Update last-amount
   const updateRequestStatus = async (requestId, status, passcode, shareholderId, withdrawAmount) => {
     try {
       const passcodeNum = Number(passcode);
       
-      // 1) Update withdraw status
       const response = await api.put(
         `/api/withdraw/change/status/${requestId}`,
         { status, shareholder_id: shareholderId },
@@ -105,10 +108,8 @@ function InterestRequest() {
         throw new Error(response.data?.message || 'Status update failed');
       }
 
-      // 2) 🔥 Update /api/insert/last-amount/ to reduce revenue
       if (status === 'approved' && withdrawAmount > 0) {
         try {
-          // Get current totals
           const totalsResponse = await api.get(`/api/insert/last-amount/${shareholderId}`);
           let currentRevenue = 0;
           let currentQuantity = 0;
@@ -144,9 +145,7 @@ function InterestRequest() {
     }
   };
 
-  // ============================================================
-  // 4. PASSCODE MODAL FLOW
-  // ============================================================
+  // Passcode Modal Flow
   const requestPasscode = (action, params) => {
     setPasscodeDigits(['', '', '', '', '', '']);
     setPasscodeError('');
@@ -193,7 +192,6 @@ function InterestRequest() {
           withdrawAmount
         );
         
-        // 🔥 Save to localStorage as withdraw history
         const withdrawKey = `withdrawHistory_${params.shareholderId}`;
         const stored = JSON.parse(localStorage.getItem(withdrawKey) || '[]');
         const newWithdraw = {
@@ -205,7 +203,6 @@ function InterestRequest() {
         stored.push(newWithdraw);
         localStorage.setItem(withdrawKey, JSON.stringify(stored));
         
-        // Dispatch event for real-time update
         window.dispatchEvent(new CustomEvent('withdrawApproved', {
           detail: {
             shareholderId: params.shareholderId,
@@ -214,7 +211,6 @@ function InterestRequest() {
           }
         }));
         
-        // Trigger for other tabs
         localStorage.setItem('withdrawTrigger', JSON.stringify({
           shareholderId: params.shareholderId,
           amount: withdrawAmount,
@@ -223,7 +219,7 @@ function InterestRequest() {
         }));
         
         await fetchWithdrawRequests();
-        alert(`✅ Withdraw request #${params.requestId} approved successfully!`);
+        showAlert(`✅ Withdraw request #${params.requestId} approved successfully!`, 'Success');
         
       } else if (action === 'reject') {
         await updateRequestStatus(
@@ -234,7 +230,7 @@ function InterestRequest() {
           0
         );
         await fetchWithdrawRequests();
-        alert(`❌ Withdraw request #${params.requestId} rejected.`);
+        showAlert(`❌ Withdraw request #${params.requestId} rejected.`, 'Rejected');
       }
       
       setShowPasscodeModal(false);
@@ -258,9 +254,7 @@ function InterestRequest() {
     setPendingActionParams(null);
   };
 
-  // ============================================================
-  // 5. HANDLERS FOR APPROVE / REJECT
-  // ============================================================
+  // Handlers for Approve / Reject
   const handleApprove = (request) => {
     requestPasscode('approve', {
       requestId: request.id,
@@ -276,9 +270,7 @@ function InterestRequest() {
     });
   };
 
-  // ============================================================
-  // 6. FORMATTING HELPERS
-  // ============================================================
+  // Formatting Helpers
   const formatCurrency = (val) => (val || 0).toLocaleString();
 
   const getStatusBadgeClass = (status) => {
@@ -306,9 +298,7 @@ function InterestRequest() {
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   };
 
-  // ============================================================
-  // 7. FILTER & SEARCH
-  // ============================================================
+  // Filter & Search
   const filteredRequests = requests.filter(req => {
     const matchesSearch = 
       (req.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -317,9 +307,15 @@ function InterestRequest() {
     return matchesSearch && matchesStatus;
   });
 
-  // ============================================================
-  // 8. RENDER
-  // ============================================================
+  // View Details Handler
+  const handleViewDetails = (req) => {
+    showAlert(
+      `Request #${req.id}\nShareholder: ${req.fullName}\nAmount: ${formatCurrency(req.interestRequestAmount)} MMK\nStatus: ${getStatusLabel(req.status)}\nDate: ${formatDate(req.requestDate)}`,
+      'Request Details'
+    );
+  };
+
+  // Render
   if (loading && requests.length === 0) {
     return (
       <div className="dashboard-container">
@@ -905,7 +901,6 @@ function InterestRequest() {
           </div>
         )}
 
-        {/* ===== HEADER ===== */}
         <div className="interest-header">
           <div className="interest-title">
             Interest Withdraw Requests
@@ -916,7 +911,6 @@ function InterestRequest() {
           </div>
         </div>
 
-        {/* ===== STATS ===== */}
         <div className="stats-row">
           <div className="stat-card-mini">
             <div className="stat-icon-mini total"><i className="bi bi-people-fill"></i></div>
@@ -948,7 +942,6 @@ function InterestRequest() {
           </div>
         </div>
 
-        {/* ===== SEARCH & FILTER ===== */}
         <div className="search-actions-row">
           <div className="search-bar-wrapper">
             <i className="bi bi-search search-icon"></i>
@@ -974,7 +967,6 @@ function InterestRequest() {
           </div>
         </div>
 
-        {/* ===== TABLE ===== */}
         <div className="table-responsive">
           <table>
             <thead>
@@ -1042,7 +1034,7 @@ function InterestRequest() {
                           <button
                             className="action-icon view"
                             title="View Details"
-                            onClick={() => alert(`Request #${req.id}\nShareholder: ${req.fullName}\nAmount: ${formatCurrency(req.interestRequestAmount)} MMK\nStatus: ${getStatusLabel(req.status)}`)}
+                            onClick={() => handleViewDetails(req)}
                           >
                             <i className="bi bi-eye"></i>
                           </button>
@@ -1057,7 +1049,7 @@ function InterestRequest() {
         </div>
       </div>
 
-      {/* ===== PASSCODE MODAL ===== */}
+      {/* Passcode Modal */}
       {showPasscodeModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1093,6 +1085,14 @@ function InterestRequest() {
           </div>
         </div>
       )}
+
+      <Alert
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        isInput={false}
+        onClose={closeAlert}
+      />
     </div>
   );
 }

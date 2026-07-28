@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from './Header';
 import axios from 'axios';
+import Alert from '../components/Alert'; 
 
 const NOTIFICATION_SOUND_URL = '/assets/sounds/notification.wav';
 
@@ -40,9 +41,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 401 error ကို ဒီမှာ ကိုင်တွယ်တာ - ဒါပေမယ့် approve/reject အတွက် သီးခြားကိုင်တွယ်မယ်
     if (error.response?.status === 401) {
-      // Login ကို ချက်ချင်းမပို့ဘူး - အောက်မှာ သီးခြားကိုင်တွယ်မယ်
       console.warn('401 Unauthorized - Please check your credentials');
     }
     return Promise.reject(error);
@@ -112,6 +111,12 @@ function Shareholder() {
   const [pendingActionParams, setPendingActionParams] = useState(null);
   const inputRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
   const [editFormData, setEditFormData] = useState({ shareClass: 'level1' });
+  
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '' });
+  const showAlert = (message, title = 'Notification') => {
+    setAlertModal({ isOpen: true, title, message });
+  };
+  const closeAlert = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
   
   const previousPendingIdsRef = useRef(new Set());
   const pollingIntervalRef = useRef(null);
@@ -437,8 +442,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Create failed';
-      alert(errMsg);
-      // 401 ဆိုရင် login မပို့ဘူး - user ကို message ပြမယ်
+      showAlert(errMsg, 'Create Failed'); // Native alert -> Alert.jsx
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -450,12 +454,12 @@ function Shareholder() {
     setLoading(true);
     try {
       if (!shareId || shareId.toString().startsWith('user_')) {
-        alert('Invalid share ID. Cannot update.');
+        showAlert('Invalid share ID. Cannot update.', 'Update Failed'); 
         return false;
       }
       const existingShare = shareholders.find(s => s.id === shareId);
       if (!existingShare) {
-        alert('Share record not found');
+        showAlert('Share record not found', 'Update Failed'); 
         return false;
       }
       const validPasscode = Number(passcode);
@@ -475,7 +479,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Update failed';
-      alert(errMsg);
+      showAlert(errMsg, 'Update Failed'); // Native alert -> Alert.jsx
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -497,7 +501,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Approve failed';
-      alert(errMsg);
+      showAlert(errMsg, 'Approval Failed'); // Native alert -> Alert.jsx
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -519,7 +523,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Reject failed';
-      alert(errMsg);
+      showAlert(errMsg, 'Rejection Failed'); // Native alert -> Alert.jsx
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -541,7 +545,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Delete failed';
-      alert(errMsg);
+      showAlert(errMsg, 'Deletion Failed'); // Native alert -> Alert.jsx
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -1107,7 +1111,6 @@ function Shareholder() {
         </div>
       </div>
 
-      {/* Passcode Modal */}
       {showPasscodeModal && (
         <div className="modal-overlay passcode-modal-overlay" onClick={() => setShowPasscodeModal(false)}>
           <div className="modal-content passcode-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
@@ -1273,6 +1276,16 @@ function Shareholder() {
           </div>
         </div>
       )}
+
+      <Alert
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        isInput={false}
+        onClose={closeAlert}
+      />
+    
+
     </div>
   );
 }

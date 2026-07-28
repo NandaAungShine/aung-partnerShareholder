@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from './Header';
 import axios from 'axios';
 
+// Alert Component ကို Import လုပ်ပါ
+import Alert from '../components/Alert';
+
 const API_BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'http://130.94.21.185:5000';
 
 const api = axios.create({
@@ -34,6 +37,13 @@ function Settings() {
   const [loading, setLoading] = useState(false);
   const [showDeleteContactConfirm, setShowDeleteContactConfirm] = useState(false);
   const [showDeleteTermsConfirm, setShowDeleteTermsConfirm] = useState(false);
+
+  // Alert Modal State
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '' });
+  const showAlert = (message, title = 'Notification') => {
+    setAlertModal({ isOpen: true, title, message });
+  };
+  const closeAlert = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
 
   const [adminProfile, setAdminProfile] = useState({
     fullName: '',
@@ -275,10 +285,10 @@ function Settings() {
       setIsEditingProfile(false);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
-      alert('Profile updated successfully!');
+      showAlert('Profile updated successfully!', 'Success');
     } catch (error) {
       console.error('Profile update failed', error);
-      alert('Failed to update: ' + (error.response?.data?.message || error.message));
+      showAlert('Failed to update: ' + (error.response?.data?.message || error.message), 'Error');
     } finally {
       setLoading(false);
     }
@@ -309,11 +319,11 @@ function Settings() {
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
-      alert('Password and Confirm Password do not match.');
+      showAlert('Password and Confirm Password do not match.', 'Validation Error');
       return;
     }
     if (newPassword.length < 6) {
-      alert('Password must be at least 6 characters.');
+      showAlert('Password must be at least 6 characters.', 'Validation Error');
       return;
     }
     setPasswordLoading(true);
@@ -322,14 +332,14 @@ function Settings() {
       await changePassword(userId, newPassword, confirmPassword);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
-      alert('Password changed successfully!');
+      showAlert('Password changed successfully!', 'Success');
       setNewPassword('');
       setConfirmPassword('');
       setShowPassword(false);
       setShowConfirmPassword(false);
       setShowPasswordModal(false);
     } catch (error) {
-      alert(`❌ Failed to change password. ${error.response?.data?.message || error.message}`);
+      showAlert(`❌ Failed to change password. ${error.response?.data?.message || error.message}`, 'Error');
     } finally {
       setPasswordLoading(false);
     }
@@ -372,15 +382,15 @@ function Settings() {
 
   const handleCreatePasscode = async () => {
     if (!currentPasscodeForCreate || !/^\d{6}$/.test(currentPasscodeForCreate)) {
-      alert('Please enter your current 6-digit passcode.');
+      showAlert('Please enter your current 6-digit passcode.', 'Validation Error');
       return;
     }
     if (newPasscode !== confirmPasscode) {
-      alert('New Passcode and Confirm Passcode do not match.');
+      showAlert('New Passcode and Confirm Passcode do not match.', 'Validation Error');
       return;
     }
     if (!/^\d{6}$/.test(newPasscode)) {
-      alert('New Passcode must be exactly 6 digits (numbers only).');
+      showAlert('New Passcode must be exactly 6 digits (numbers only).', 'Validation Error');
       return;
     }
     setPasscodeLoading(true);
@@ -389,7 +399,7 @@ function Settings() {
       localStorage.setItem('passcode', newPasscode);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
-      alert('Passcode created successfully!');
+      showAlert('Passcode created successfully!', 'Success');
       setHasPasscode(true);
       setCurrentPasscodeForCreate('');
       setNewPasscode('');
@@ -399,7 +409,7 @@ function Settings() {
       setShowConfirmPasscode(false);
       setShowCreatePasscodeModal(false);
     } catch (error) {
-      alert(`❌ Failed to create passcode. ${error.response?.data?.message || error.message}`);
+      showAlert(`❌ Failed to create passcode. ${error.response?.data?.message || error.message}`, 'Error');
     } finally {
       setPasscodeLoading(false);
     }
@@ -425,15 +435,15 @@ function Settings() {
 
   const handleChangePasscode = async () => {
     if (!currentPasscodeForHeader || !/^\d{6}$/.test(currentPasscodeForHeader)) {
-      alert('Please enter your current 6-digit passcode.');
+      showAlert('Please enter your current 6-digit passcode.', 'Validation Error');
       return;
     }
     if (newPasscode !== confirmPasscode) {
-      alert('New Passcode and Confirm Passcode do not match.');
+      showAlert('New Passcode and Confirm Passcode do not match.', 'Validation Error');
       return;
     }
     if (!/^\d{6}$/.test(newPasscode)) {
-      alert('New Passcode must be exactly 6 digits (numbers only).');
+      showAlert('New Passcode must be exactly 6 digits (numbers only).', 'Validation Error');
       return;
     }
     setPasscodeLoading(true);
@@ -443,7 +453,7 @@ function Settings() {
       localStorage.setItem('passcode', newPasscode);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
-      alert('Passcode changed successfully!');
+      showAlert('Passcode changed successfully!', 'Success');
       setCurrentPasscodeForHeader('');
       setNewPasscode('');
       setConfirmPasscode('');
@@ -452,7 +462,7 @@ function Settings() {
       setShowConfirmPasscode(false);
       setShowChangePasscodeModal(false);
     } catch (error) {
-      alert(`❌ Failed to change passcode. ${error.response?.data?.message || error.message}`);
+      showAlert(`❌ Failed to change passcode. ${error.response?.data?.message || error.message}`, 'Error');
     } finally {
       setPasscodeLoading(false);
     }
@@ -529,11 +539,11 @@ function Settings() {
         setIsEditingGeneral(false);
         await fetchContactSettings();
       } else {
-        alert('Failed to save settings');
+        showAlert('Failed to save settings', 'Error');
       }
     } catch (error) {
       console.error('Save error:', error);
-      alert(`Error: ${error.response?.data?.message || error.message}`);
+      showAlert(`Error: ${error.response?.data?.message || error.message}`, 'Error');
     } finally {
       setLoading(false);
     }
@@ -565,7 +575,7 @@ function Settings() {
       setIsEditingGeneral(false);
     } catch (error) {
       console.error('Delete error:', error);
-      alert(`Delete failed: ${error.response?.data?.message || error.message}`);
+      showAlert(`Delete failed: ${error.response?.data?.message || error.message}`, 'Error');
     } finally {
       setLoading(false);
     }
@@ -655,7 +665,7 @@ function Settings() {
       await fetchTerms();
     } catch (error) {
       console.error('Save terms error:', error);
-      alert(`Save failed: ${error.response?.data?.message || error.message}`);
+      showAlert(`Save failed: ${error.response?.data?.message || error.message}`, 'Error');
     } finally {
       setLoading(false);
     }
@@ -675,7 +685,7 @@ function Settings() {
       await fetchTerms();
     } catch (error) {
       console.error('Delete terms error:', error);
-      alert(`Delete failed: ${error.response?.data?.message || error.message}`);
+      showAlert(`Delete failed: ${error.response?.data?.message || error.message}`, 'Error');
     } finally {
       setLoading(false);
     }
@@ -728,11 +738,17 @@ function Settings() {
   }, []);
 
   const handleResetSettings = () => setShowResetConfirm(true);
-  const confirmReset = () => setShowResetConfirm(false);
-  const performBackup = () => alert('Backup initiated.');
+  const confirmReset = () => {
+    setShowResetConfirm(false);
+    showAlert('Settings reset to default values.', 'Success');
+  };
+  const performBackup = () => {
+    showAlert('Backup initiated.', 'Backup');
+  };
   const handleSaveSettings = () => {
     setShowSuccessMessage(true);
     setTimeout(() => setShowSuccessMessage(false), 3000);
+    showAlert('Settings saved successfully!', 'Success');
   };
 
   const getTabClass = (tabName) => `settings-tab ${activeTab === tabName ? 'active' : ''}`;
@@ -752,13 +768,9 @@ function Settings() {
     return `/uploads/${imageValue}`;
   };
 
-  // ============================================================
-  // RENDER (Width အပြည့်ဖြစ်စေရန် CSS ကို အပြင်းအထန် ပြင်ဆင်ထား)
-  // ============================================================
   return (
     <div className={`dashboard-container ${isDarkMode ? 'dark-theme' : 'light-theme'}`}>
       <style>{`
-        /* ====== 1. မိဘဒြပ်စင် (App, main-content) ကို အကျယ်အပြည့်ယူရန် ====== */
         .App,
         .App .main-content,
         #root,
@@ -773,7 +785,6 @@ function Settings() {
           box-sizing: border-box !important;
         }
 
-        /* ====== 2. Dashboard Container (ဘယ် 170px ချန်ပြီး ကျန်တဲ့ width အကုန်ယူရန်) ====== */
         .dashboard-container {
           margin-left: 170px !important;
           padding: 16px 20px !important;
@@ -784,7 +795,7 @@ function Settings() {
           overflow-x: hidden !important;
           background: var(--bg-color, #f4f7fc);
           color: var(--text-color, #1a1a2e);
-          flex: 0 0 auto !important; /* flex မှာ မဆန့်ဘဲ သတ်မှတ် width အတိုင်းထားရန် */
+          flex: 0 0 auto !important;
         }
 
         .dark-theme { --bg-color: #121212; --card-bg: #1e1e2f; --border-color: #2d2d44; --input-bg: #2a2a3f; --text-color: #e4e4f0; --hover-bg: #2d2d44; }
@@ -802,18 +813,16 @@ function Settings() {
           font-size: 14px;
         }
 
-        /* ====== 3. Two Columns (ညာဘက်က ကျန်တဲ့နေရာအကုန်ယူရန်) ====== */
         .settings-two-columns {
           display: flex;
           gap: 16px;
-          flex-wrap: nowrap; /* တစ်တန်းထဲထားရန် */
+          flex-wrap: nowrap; 
           align-items: stretch;
           width: 100% !important;
         }
 
-        /* Left Column - fixed width 280px */
         .admin-profile-card {
-          flex: 0 0 280px !important; /* သတ်မှတ်အရွယ်ထားရန် */
+          flex: 0 0 280px !important; 
           background: var(--card-bg);
           border-radius: 16px;
           padding: 16px;
@@ -821,10 +830,9 @@ function Settings() {
           box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
 
-        /* Right Column - take all remaining space */
         .settings-right-column {
-          flex: 1 !important; /* ကျန်နေတဲ့နေရာအကုန်ယူရန် */
-          min-width: 0 !important; /* flex ဆန့်အောင် */
+          flex: 1 !important;
+          min-width: 0 !important; 
           display: flex;
           flex-direction: column;
           width: 100% !important;
@@ -1076,7 +1084,6 @@ function Settings() {
         </div>
       )}
 
-      {/* ====== MODALS (မူလအတိုင်း) ====== */}
       {showResetConfirm && (
         <div className="modal-overlay" onClick={() => setShowResetConfirm(false)}>
           <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
@@ -1279,6 +1286,14 @@ function Settings() {
           </div>
         </div>
       </div>
+
+      <Alert
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        isInput={false}
+        onClose={closeAlert}
+      />
     </div>
   );
 }

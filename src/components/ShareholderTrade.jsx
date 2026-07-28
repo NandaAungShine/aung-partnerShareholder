@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from './Header';
 import axios from 'axios';
 
+import Alert from '../components/Alert';
+
 const API_BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'http://130.94.21.185:5000';
 
 const api = axios.create({
@@ -62,6 +64,12 @@ function ShareholderTrade() {
     revenue: null,
   });
 
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '' });
+  const showAlert = (message, title = 'Notification') => {
+    setAlertModal({ isOpen: true, title, message });
+  };
+  const closeAlert = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
+
   useEffect(() => {
     if (isDarkMode) {
       document.body.classList.add('dark-mode');
@@ -84,11 +92,9 @@ function ShareholderTrade() {
   };
 
   const handleNativeDateChange = (e) => {
-    // Disabled – do nothing
   };
 
   const openDatePicker = () => {
-    // Disabled – do nothing
   };
 
   const fetchShareRecord = async (shareholderId) => {
@@ -275,9 +281,6 @@ function ShareholderTrade() {
     }
   }, []);
 
-  // ============================================================
-  // ✅ fetchAllTransactions – Withdraw ပါ ထည့်ပြီး
-  // ============================================================
   const fetchAllTransactions = useCallback(async (shareholderId) => {
     console.log('🔄 fetchAllTransactions started');
     if (!shareholderId) return;
@@ -318,7 +321,6 @@ function ShareholderTrade() {
 
       const dividendFromApi = await fetchDividendTransactions(shareholderId);
 
-      // ========== Withdraw transactions ကို localStorage ကနေ ဖတ်မယ် ==========
       const withdrawKey = `withdrawHistory_${shareholderId}`;
       const storedWithdraws = JSON.parse(localStorage.getItem(withdrawKey) || '[]');
       const withdrawTransactions = storedWithdraws.map((w, index) => ({
@@ -423,8 +425,6 @@ function ShareholderTrade() {
     }
   }, [fetchAllTransactions]);
 
-  // ========== useEffect ==========
-
   useEffect(() => {
     if (selectedAccount) {
       fetchAllTransactions(selectedAccount.id);
@@ -500,9 +500,6 @@ function ShareholderTrade() {
     return () => window.removeEventListener('shareholderRefresh', refreshHandler);
   }, [selectedAccount, fetchAllTransactions]);
 
-  // ============================================================
-  // ✅ WITHDRAW APPROVED EVENT LISTENER (Withdraw ကို History မှာ ထည့်ပြီး API ကိုလည်း ပို့မယ်)
-  // ============================================================
   useEffect(() => {
     if (!selectedAccount) return;
 
@@ -511,7 +508,6 @@ function ShareholderTrade() {
       if (!shareholderId || !amount) return;
       
       if (selectedAccount && Number(selectedAccount.id) === Number(shareholderId)) {
-        // 1️⃣ Save to localStorage (for persistence)
         const withdrawKey = `withdrawHistory_${shareholderId}`;
         const stored = JSON.parse(localStorage.getItem(withdrawKey) || '[]');
         const newWithdraw = {
@@ -523,14 +519,12 @@ function ShareholderTrade() {
         stored.push(newWithdraw);
         localStorage.setItem(withdrawKey, JSON.stringify(stored));
 
-        // 2️⃣ Update totals immediately
         setTotals(prev => ({
           ...prev,
           totalDividendProfit: Math.max(0, prev.totalDividendProfit - amount),
           totalInvestment: Math.max(0, prev.totalInvestment - amount),
         }));
 
-        // 3️⃣ 🔥 Send to API (if available)
         try {
           await api.post('/api/withdraw/transaction', {
             shareholder_id: Number(shareholderId),
@@ -543,7 +537,6 @@ function ShareholderTrade() {
           console.warn('⚠️ Could not send withdraw to API, but local data saved:', apiErr.message);
         }
 
-        // 4️⃣ Refresh transactions (will show withdraw in history)
         await fetchAllTransactions(shareholderId);
         console.log(`✅ Withdraw ${amount} MMK applied to shareholder ${shareholderId}`);
       }
@@ -554,7 +547,6 @@ function ShareholderTrade() {
         try {
           const data = JSON.parse(e.newValue);
           if (data && Number(data.shareholderId) === Number(selectedAccount.id)) {
-            // Same logic as above
             const withdrawKey = `withdrawHistory_${selectedAccount.id}`;
             const stored = JSON.parse(localStorage.getItem(withdrawKey) || '[]');
             const newWithdraw = {
@@ -680,9 +672,6 @@ function ShareholderTrade() {
     return { totalShares, totalInvestment };
   };
 
-  // ===================================================================
-  // ✅ executeTransaction – Passcode sent via header only
-  // ===================================================================
   const executeTransaction = async (passcode) => {
     if (!pendingTransaction) return;
 
@@ -708,7 +697,7 @@ function ShareholderTrade() {
       shareholderIdNum = Math.floor(shareholderIdNum);
       passcodeNum = Math.floor(passcodeNum);
     } catch (err) {
-      alert(err.message);
+      showAlert(err.message, 'Validation Error');
       setShowPasscodeModal(false);
       return;
     }
@@ -787,10 +776,10 @@ function ShareholderTrade() {
       if (updatedSelected) setSelectedAccount(updatedSelected);
       window.dispatchEvent(new CustomEvent('shareholderRefresh'));
 
-      alert(`✅ ${type === 'buy' ? 'Bought' : 'Sold'} ${quantity} shares successfully!`);
+      showAlert(`✅ ${type === 'buy' ? 'Bought' : 'Sold'} ${quantity} shares successfully!`, 'Success');
     } catch (err) {
       console.error("Transaction error:", err);
-      alert(err.response?.data?.message || err.message || 'Transaction failed');
+      showAlert(err.response?.data?.message || err.message || 'Transaction failed', 'Transaction Failed');
     } finally {
       setShareAmount('');
       setSharePrice('');
@@ -877,7 +866,6 @@ function ShareholderTrade() {
   return (
     <div className={`dashboard-container ${isDarkMode ? 'dark-theme' : 'light-theme'}`}>
       <style>{`
-        /* ----- Main Layout Fix ----- */
         .App {
           display: flex !important;
           width: 100% !important;
@@ -1180,6 +1168,14 @@ function ShareholderTrade() {
           </div>
         </div>
       )}
+
+      <Alert
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        isInput={false}
+        onClose={closeAlert}
+      />
     </div>
   );
 }

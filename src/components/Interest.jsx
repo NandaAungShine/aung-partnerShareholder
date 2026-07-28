@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from './Header';
 import axios from 'axios';
 
+import Alert from '../components/Alert';
+
 const API_BASE_URL = process.env.NODE_ENV === 'development' ? '' : 'http://130.94.21.185:5000';
 
 const api = axios.create({
@@ -40,7 +42,13 @@ function Interest() {
   const [passcodeError, setPasscodeError] = useState('');
   const inputRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
 
-  // ===== FIX: Search Input အတွက် Ref နဲ့ Key ထည့်ထားတယ် =====
+  // Alert Modal State
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '' });
+  const showAlert = (message, title = 'Notification') => {
+    setAlertModal({ isOpen: true, title, message });
+  };
+  const closeAlert = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
+
   const [searchInputKey, setSearchInputKey] = useState(0);
   const searchInputRef = useRef(null);
 
@@ -206,9 +214,6 @@ function Interest() {
     setDividendRate('');
   };
 
-  // ================================================================
-  // applyDividend – Passcode sent via header only
-  // ================================================================
   const applyDividend = async (passcode) => {
     if (!selectedShareholderId || !selectedTransaction) return;
 
@@ -217,12 +222,12 @@ function Interest() {
     const priceForDividend = selectedTransaction.price;
 
     if (isNaN(baseShares) || baseShares <= 0) {
-      alert('Invalid share quantity from selected transaction.');
+      showAlert('Invalid share quantity from selected transaction.', 'Validation Error');
       setShowPasscodeModal(false);
       return;
     }
     if (isNaN(rate) || rate <= 0) {
-      alert('Dividend Rate must be greater than 0');
+      showAlert('Dividend Rate must be greater than 0', 'Validation Error');
       setShowPasscodeModal(false);
       return;
     }
@@ -261,11 +266,14 @@ function Interest() {
       window.dispatchEvent(new CustomEvent('shareholderRefresh'));
 
       const profitAmount = baseShares * priceForDividend * rate / 100;
-      alert(`✅ Dividend recorded for ${selectedShareholderName}\n` +
-            `Base shares: ${baseShares}\n` +
-            `Price per share: ${priceForDividend} MMK\n` +
-            `Dividend rate: ${rate}%\n` +
-            `Profit amount: ${profitAmount.toFixed(2)} MMK`);
+      showAlert(
+        `✅ Dividend recorded for ${selectedShareholderName}\n` +
+        `Base shares: ${baseShares}\n` +
+        `Price per share: ${priceForDividend} MMK\n` +
+        `Dividend rate: ${rate}%\n` +
+        `Profit amount: ${profitAmount.toFixed(2)} MMK`,
+        'Success'
+      );
 
       await fetchShareholdersList();
       await fetchTransactionsFromAPI(selectedShareholderId);
@@ -280,11 +288,10 @@ function Interest() {
       setSelectedTransaction(null);
       setShowTransactionDropdown(false);
 
-      // ===== FIX: အတိုးပေးပြီးတိုင်း Search Input ကို ပြန်လည် အသက်သွင်းပေးတယ် =====
-      setSearchInputKey(prev => prev + 1); // Component အသစ်ပြန် mount လုပ်တယ်
+      setSearchInputKey(prev => prev + 1);
       setTimeout(() => {
         if (searchInputRef.current) {
-          searchInputRef.current.focus(); // Auto Focus ပြန်ပေးတယ်
+          searchInputRef.current.focus();
         }
       }, 100);
 
@@ -292,11 +299,11 @@ function Interest() {
       console.error('❌ Dividend error:', error);
       if (error.response) {
         const errorMsg = error.response.data?.message || error.response.data?.error || JSON.stringify(error.response.data);
-        alert(`Server error (${error.response.status}): ${errorMsg}`);
+        showAlert(`Server error (${error.response.status}): ${errorMsg}`, 'Server Error');
       } else if (error.request) {
-        alert('No response from server. Check network/CORS.');
+        showAlert('No response from server. Check network/CORS.', 'Network Error');
       } else {
-        alert(`Error: ${error.message}`);
+        showAlert(`Error: ${error.message}`, 'Error');
       }
     } finally {
       setApplying(false);
@@ -307,16 +314,16 @@ function Interest() {
 
   const handleApplyDividend = () => {
     if (!selectedShareholderId) {
-      alert('Please select a shareholder first.');
+      showAlert('Please select a shareholder first.', 'Validation Error');
       return;
     }
     if (!selectedTransaction) {
-      alert('Please select a past transaction to apply dividend on.');
+      showAlert('Please select a past transaction to apply dividend on.', 'Validation Error');
       return;
     }
     const rate = parseFloat(dividendRate);
     if (isNaN(rate) || rate <= 0) {
-      alert('Please enter a valid Dividend Rate (%) greater than 0.');
+      showAlert('Please enter a valid Dividend Rate (%) greater than 0.', 'Validation Error');
       return;
     }
     setPasscodeDigits(['','','','','','']);
@@ -375,9 +382,7 @@ function Interest() {
   return (
     <div className={`dashboard-container ${isDarkMode ? 'dark-theme' : 'light-theme'}`}>
       <Header title="Share Dividend Calculator" onThemeChange={handleThemeChange} />
-      {/* ====== FIX: Sidebar နဲ့ ကွာနေတဲ့ နေရာလွတ် (White Gap) ကို ဖယ်ရှားပြီး width အပြည့်ယူမယ် ====== */}
       <style>{`
-        /* ----- Main Layout Fix (Sidebar နဲ့ ကပ်အောင် ချိန်ညှိထား) ----- */
         .App {
           display: flex !important;
           width: 100% !important;
@@ -409,7 +414,6 @@ function Interest() {
           flex: 1 !important;
         }
 
-        /* မူရင်း Interest CSS အားလုံးကို အောက်မှာ ဆက်ထားမယ် */
         .dividend-container { max-width: 600px; width: 100%; margin: 2rem auto; padding: 0 1rem; }
         .dividend-card { background: var(--card-bg); border-radius: 24px; padding: 2rem; box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
         .form-group { margin-bottom: 1.5rem; }
@@ -447,7 +451,6 @@ function Interest() {
           <div className="form-group">
             <label>Select Shareholder (Search by ID or Name)</label>
             <div className="searchable-select">
-              {/* ===== FIX: key, ref ထည့်ပြီး disabled ကို loading ပေါ်ပဲမူတည်အောင်ပြင်ထား ===== */}
               <input
                 key={searchInputKey}
                 ref={searchInputRef}
@@ -510,6 +513,7 @@ function Interest() {
         </div>
       </div>
 
+      {/* Passcode Modal */}
       {showPasscodeModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -519,6 +523,14 @@ function Interest() {
           </div>
         </div>
       )}
+
+      <Alert
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        isInput={false}
+        onClose={closeAlert}
+      />
     </div>
   );
 }

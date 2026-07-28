@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+import Alert from '../components/Alert'; 
 
 import logoImage from '../assets/images/photo_2026-06-12_23-30-09.jpg';
-
 
 const API_BASE_URL = '';
 
@@ -19,10 +19,28 @@ const api = axios.create({
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
+
+  const [alert, setAlert] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+  });
+
+  const showErrorAlert = (message) => {
+    setAlert({
+      isOpen: true,
+      title: 'Login Error',
+      message: message,
+    });
+  };
+
+  const closeAlert = () => {
+    setAlert(prev => ({ ...prev, isOpen: false }));
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -31,11 +49,10 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     if (!email.trim() || !password.trim()) {
-      setError('Please enter email and password');
+      showErrorAlert('Please enter email and password');
       setLoading(false);
       return;
     }
@@ -43,7 +60,7 @@ function Login() {
     try {
       const response = await api.post('/auth/login', {
         email: email.trim(),
-        password: password.trim()
+        password: password.trim(),
       });
 
       if (response.data?.success && response.data.token) {
@@ -51,13 +68,13 @@ function Login() {
         localStorage.setItem('user', JSON.stringify(response.data.user));
         navigate('/shareholder');
       } else {
-        setError(response.data?.message || 'Login failed');
+        showErrorAlert(response.data?.message || 'Login failed');
       }
     } catch (error) {
       if (error.response?.status === 401) {
-        setError('Invalid email or password');
+        showErrorAlert('Invalid email or password');
       } else {
-        setError(error.response?.data?.message || 'Login failed');
+        showErrorAlert(error.response?.data?.message || 'Login failed');
       }
     } finally {
       setLoading(false);
@@ -77,7 +94,7 @@ function Login() {
                 width: '80px',
                 height: '80px',
                 borderRadius: '50%',
-                objectFit: 'cover'
+                objectFit: 'cover',
               }}
               onError={(e) => {
                 e.target.onerror = null;
@@ -88,13 +105,6 @@ function Login() {
           <h1 className="login-logo">Aung Partner</h1>
           <p className="login-subtitle">Admin Dashboard Login</p>
         </div>
-
-        {error && (
-          <div className="login-error">
-            <i className="bi bi-exclamation-triangle-fill"></i>
-            <span>{error}</span>
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="login-form-group">
@@ -128,7 +138,11 @@ function Login() {
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                <i className={`bi ${showPassword ? 'bi-eye-slash-fill' : 'bi-eye-fill'}`}></i>
+                <i
+                  className={`bi ${
+                    showPassword ? 'bi-eye-slash-fill' : 'bi-eye-fill'
+                  }`}
+                ></i>
               </button>
             </div>
           </div>
@@ -148,6 +162,14 @@ function Login() {
           </button>
         </form>
       </div>
+
+      <Alert
+        isOpen={alert.isOpen}
+        title={alert.title}
+        message={alert.message}
+        isInput={false} 
+        onClose={closeAlert}
+      />
     </div>
   );
 }
