@@ -838,7 +838,8 @@ function Settings() {
           width: 100% !important;
         }
 
-        /* Profile Header */
+        
+         Profile Header */
         .profile-header {
           display: flex;
           gap: 12px;
