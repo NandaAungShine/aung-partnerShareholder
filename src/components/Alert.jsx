@@ -1,20 +1,43 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Alert({ isOpen, title, message, isInput = false, inputType = "password", onClose, onSubmit }) {
+export default function Alert({ 
+  isOpen, 
+  title, 
+  message, 
+  isInput = false, 
+  inputType = "password", 
+  showCancel = false,  
+  onClose, 
+  onSubmit 
+}) {
   const [inputValue, setInputValue] = useState('');
 
+  // Alert ပွင့်တိုင်း input ကို ရှင်းပေး
   useEffect(() => {
     if (isOpen) setInputValue('');
   }, [isOpen]);
 
+  // Alert ပိတ်နေရင် ဘာမှမပြန်ပါနဲ့
   if (!isOpen) return null;
 
+  // ★★★★★ အဓိက အချက် - OK နှိပ်ရင် ဘယ်လိုပဲဖြစ်ဖြစ် ပိတ်သွားအောင် အတင်းသတ်မှတ်ထား ★★★★★
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (isInput) {
-      onSubmit(inputValue); 
+    
+    try {
+      // ၁။ သင့်ရဲ့ လုပ်ဆောင်ချက် (Logout / Success) ကို Run ပါ
+      if (isInput) {
+        onSubmit(inputValue);
+      } else {
+        onSubmit();
+      }
+    } catch (error) {
+      // Error ဖြစ်ရင်လည်း ဘာမှမလုပ်ပါနဲ့
+      console.error('Alert onSubmit error:', error);
+    } finally {
+      // ၂။ ဘယ်လိုပဲဖြစ်ဖြစ် Alert ကို သေချာပိတ်လိုက်မယ် (ဒီနေရာက အဓိက)
+      onClose();
     }
-    onClose();
   };
 
   return (
@@ -24,7 +47,6 @@ export default function Alert({ isOpen, title, message, isInput = false, inputTy
         <p style={styles.text}>{message}</p>
 
         <form onSubmit={handleSubmit}>
-         
           {isInput && (
             <input
               type={inputType}
@@ -38,8 +60,7 @@ export default function Alert({ isOpen, title, message, isInput = false, inputTy
           )}
 
           <div style={styles.buttonGroup}>
-            
-            {isInput && (
+            {(isInput || showCancel) && (
               <button type="button" style={styles.cancelBtn} onClick={onClose}>
                 Cancel
               </button>
@@ -54,32 +75,71 @@ export default function Alert({ isOpen, title, message, isInput = false, inputTy
   );
 }
 
+// ★★★★★ နောက်ခံ #3c434d နဲ့ စာသားအဖြူ အတိုင်းထားထား ★★★★★
 const styles = {
   overlay: {
-    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    display: 'flex', justifyContent: 'center', alignItems: 'center',
+    position: 'fixed', 
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center',
     zIndex: 9999
   },
   modal: {
-    background: '#fff', padding: '24px', borderRadius: '12px',
-    textAlign: 'center', minWidth: '280px', maxWidth: '80%',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+    background: '#3c434d', // သင်လိုချင်တဲ့ နောက်ခံအရောင်
+    padding: '24px', 
+    borderRadius: '12px',
+    textAlign: 'center', 
+    minWidth: '280px', 
+    maxWidth: '80%',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
   },
-  title: { margin: '0 0 10px 0', fontSize: '18px', color: '#111' },
-  text: { margin: '0 0 16px 0', fontSize: '14px', color: '#555' },
+  title: { 
+    margin: '0 0 10px 0', 
+    fontSize: '18px', 
+    color: '#ffffff' // ခေါင်းစဉ် အဖြူ
+  },
+  text: { 
+    margin: '0 0 16px 0', 
+    fontSize: '14px', 
+    color: '#f0f4f8' // စာသား အဖြူနု
+  },
   input: {
-    width: '100%', padding: '10px', fontSize: '16px',
-    borderRadius: '6px', border: '1px solid #ccc',
-    marginBottom: '16px', boxSizing: 'border-box', textAlign: 'center'
+    width: '100%', 
+    padding: '10px', 
+    fontSize: '16px',
+    borderRadius: '6px', 
+    background: '#2a3038',
+    color: '#ffffff', 
+    border: '1px solid #5a6268',
+    marginBottom: '16px', 
+    boxSizing: 'border-box', 
+    textAlign: 'center',
+    outline: 'none'
   },
-  buttonGroup: { display: 'flex', justifyContent: 'flex-end', gap: '8px' },
+  buttonGroup: { 
+    display: 'flex', 
+    justifyContent: 'flex-end', 
+    gap: '8px' 
+  },
   submitBtn: {
-    flex: 1, padding: '10px', background: '#007bff', color: '#fff',
-    border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'
+    flex: 1, 
+    padding: '10px', 
+    background: '#4F46E5', // OK ခလုတ် Indigo ရောင်
+    color: '#ffffff',
+    border: 'none', 
+    borderRadius: '6px', 
+    cursor: 'pointer', 
+    fontWeight: 'bold'
   },
   cancelBtn: {
-    flex: 1, padding: '10px', background: '#e0e0e0', color: '#333',
-    border: 'none', borderRadius: '6px', cursor: 'pointer'
+    flex: 1, 
+    padding: '10px', 
+    background: '#5a6268',
+    color: '#ffffff',
+    border: 'none', 
+    borderRadius: '6px', 
+    cursor: 'pointer'
   }
 };
