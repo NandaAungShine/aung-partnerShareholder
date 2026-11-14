@@ -9,6 +9,8 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? 'http://130.94.21.185:5000'
   : '';
 
+const REGISTER_API_URL = 'https://api.aungpartner.com/auth/register';
+
 const getImageUrl = (imagePath) => {
   if (!imagePath || typeof imagePath !== 'string') return null;
   const trimmed = imagePath.trim();
@@ -25,6 +27,30 @@ const getImageUrl = (imagePath) => {
   if (process.env.NODE_ENV !== 'production') return `/${prefixedPath}`;
   return `http://130.94.23.117:5000/${prefixedPath}`;
 };
+
+// ===================== NEW: Birthday helpers =====================
+// Native date input -> "DD.MM.YYYY" (no leading zeros) to match API format e.g. "25.7.2003"
+const convertToBirthdayFormat = (isoDate) => {
+  if (!isoDate || typeof isoDate !== 'string') return '';
+  const parts = isoDate.split('-');
+  if (parts.length !== 3) return isoDate;
+  const [y, m, d] = parts;
+  const dayNum = parseInt(d, 10);
+  const monthNum = parseInt(m, 10);
+  if (Number.isNaN(dayNum) || Number.isNaN(monthNum) || !y) return isoDate;
+  return `${dayNum}.${monthNum}.${y}`;
+};
+
+// Get today's YYYY-MM-DD (used as max for birthday picker so future dates can't be chosen).
+// This is computed dynamically so when the year changes (e.g. 2027), that year is automatically included.
+const getTodayIsoDate = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+// =================================================================
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -111,7 +137,23 @@ function Shareholder() {
   const [pendingActionParams, setPendingActionParams] = useState(null);
   const inputRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
   const [editFormData, setEditFormData] = useState({ shareClass: 'level1' });
-  
+
+  // ===================== Registration Form State =====================
+  const [registerFormData, setRegisterFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    nrc: '',
+    township: '',
+    region: '',
+    phone: '',
+    address: '',
+    birthday: '', // stored as ISO "YYYY-MM-DD" (from native date input)
+  });
+  const [registerErrors, setRegisterErrors] = useState({});
+  const [registerLoading, setRegisterLoading] = useState(false);
+  // =====================================================================
+
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '' });
   const showAlert = (message, title = 'Notification') => {
     setAlertModal({ isOpen: true, title, message });
@@ -442,7 +484,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Create failed';
-      showAlert(errMsg, 'Create Failed'); // Native alert -> Alert.jsx
+      showAlert(errMsg, 'Create Failed');
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -479,7 +521,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Update failed';
-      showAlert(errMsg, 'Update Failed'); // Native alert -> Alert.jsx
+      showAlert(errMsg, 'Update Failed');
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -501,7 +543,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Approve failed';
-      showAlert(errMsg, 'Approval Failed'); // Native alert -> Alert.jsx
+      showAlert(errMsg, 'Approval Failed');
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -523,7 +565,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Reject failed';
-      showAlert(errMsg, 'Rejection Failed'); // Native alert -> Alert.jsx
+      showAlert(errMsg, 'Rejection Failed');
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -545,7 +587,7 @@ function Shareholder() {
       return false;
     } catch (error) {
       const errMsg = error.response?.data?.message || 'Delete failed';
-      showAlert(errMsg, 'Deletion Failed'); // Native alert -> Alert.jsx
+      showAlert(errMsg, 'Deletion Failed');
       if (error.response?.status === 401) {
         setPasscodeError('Invalid passcode or session expired. Please try again.');
       }
@@ -626,6 +668,85 @@ function Shareholder() {
     setSelectedShareholderForView(s);
     setShowViewModal(true);
   };
+
+  // ===================== Registration Handlers =====================
+  const handleRegisterInputChange = (e) => {
+    const { name, value } = e.target;
+    setRegisterFormData(prev => ({ ...prev, [name]: value }));
+    if (registerErrors[name]) {
+      setRegisterErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    if (registerErrors.submit) {
+      setRegisterErrors(prev => ({ ...prev, submit: '' }));
+    }
+  };
+
+  const handleCreateShareholder = async (e) => {
+    e.preventDefault();
+    const errors = {};
+    if (!registerFormData.username.trim()) errors.username = 'Username is required';
+    if (!registerFormData.email.trim()) errors.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerFormData.email.trim())) errors.email = 'Invalid email format';
+    if (!registerFormData.password) errors.password = 'Password is required';
+    if (!registerFormData.nrc.trim()) errors.nrc = 'NRC is required';
+    if (!registerFormData.phone.trim()) errors.phone = 'Phone is required';
+
+    if (Object.keys(errors).length > 0) {
+      setRegisterErrors(errors);
+      return;
+    }
+
+    setRegisterLoading(true);
+    setRegisterErrors({});
+    try {
+      const payload = {
+        username: registerFormData.username.trim(),
+        email: registerFormData.email.trim(),
+        password: registerFormData.password,
+        nrc: registerFormData.nrc.trim(),
+        township: registerFormData.township.trim(),
+        region: registerFormData.region.trim(),
+        phone: registerFormData.phone.trim(),
+        address: registerFormData.address.trim(),
+        // Convert ISO "YYYY-MM-DD" (from date picker) to "DD.MM.YYYY" (API format e.g. 25.7.2003)
+        birthday: convertToBirthdayFormat(registerFormData.birthday),
+      };
+
+      const response = await axios.post(REGISTER_API_URL, payload, {
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        timeout: 30000,
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        showAlert('New shareholder created successfully!', 'Success');
+        setRegisterFormData({
+          username: '', email: '', password: '', nrc: '', township: '',
+          region: '', phone: '', address: '', birthday: '',
+        });
+        setShowAddModal(false);
+        await fetchUsersAndShares();
+      }
+    } catch (error) {
+      const errMsg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.response?.data?.detail ||
+        'Registration failed. Please try again.';
+      setRegisterErrors({ submit: errMsg });
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+    setRegisterErrors({});
+    setRegisterFormData({
+      username: '', email: '', password: '', nrc: '', township: '',
+      region: '', phone: '', address: '', birthday: '',
+    });
+  };
+  // =======================================================================
 
   // ================== Sorting and Filtering ==================
 
@@ -955,6 +1076,47 @@ function Shareholder() {
           border-color: #0d6efd;
           box-shadow: 0 0 0 2px rgba(13,110,253,0.25);
         }
+
+        /* ====== Register form styles ====== */
+        .register-form-error {
+          color: #dc3545;
+          font-size: 0.8rem;
+          margin-top: 4px;
+          display: block;
+        }
+        .register-form-section-title {
+          font-size: 0.95rem;
+          font-weight: 600;
+          margin: 0.75rem 0 0.5rem 0;
+          color: var(--text-color);
+          opacity: 0.8;
+          border-bottom: 1px solid var(--border-color);
+          padding-bottom: 0.35rem;
+        }
+        .register-submit-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        /* ====== NEW: Birthday date picker styles ====== */
+        /* Native date input — keep consistent look + show calendar icon in both themes */
+        .form-group input[type="date"] {
+          cursor: pointer;
+          color-scheme: light;
+          min-height: 38px;
+        }
+        .dark-theme .form-group input[type="date"] {
+          color-scheme: dark;
+        }
+        .form-group input[type="date"]::-webkit-calendar-picker-indicator {
+          cursor: pointer;
+          opacity: 0.7;
+          transition: opacity 0.2s;
+        }
+        .form-group input[type="date"]::-webkit-calendar-picker-indicator:hover {
+          opacity: 1;
+        }
       `}</style>
 
       {apiError && (
@@ -1145,20 +1307,174 @@ function Shareholder() {
         </div>
       )}
 
-      {/* Add Modal */}
+      {/* ===================== Add Shareholder Registration Modal ===================== */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content large-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={handleCloseAddModal}>
+          <div className="modal-content large-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '720px' }}>
             <div className="modal-header">
-              <h2>Create New Share</h2>
-              <button className="close-btn" onClick={() => setShowAddModal(false)}><i className="bi bi-x-lg"></i></button>
+              <h2><i className="bi bi-person-plus-fill"></i> New Shareholder</h2>
+              <button className="close-btn" onClick={handleCloseAddModal}><i className="bi bi-x-lg"></i></button>
             </div>
-            <div className="modal-body">
-              <p>Please use the "Edit" button on an approved user to create their share record.</p>
-            </div>
-            <div className="modal-footer">
-              <button className="discard-btn" onClick={() => setShowAddModal(false)}>Close</button>
-            </div>
+            <form onSubmit={handleCreateShareholder}>
+              <div className="modal-body">
+                {registerErrors.submit && (
+                  <div className="alert alert-danger mb-3" style={{ borderRadius: '12px' }}>
+                    <i className="bi bi-exclamation-triangle-fill"></i> {registerErrors.submit}
+                  </div>
+                )}
+
+                <div className="register-form-section-title">
+                  <i className="bi bi-person-badge"></i> Account Information
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Username <span style={{ color: '#dc3545' }}>*</span></label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={registerFormData.username}
+                      onChange={handleRegisterInputChange}
+                      placeholder="e.g. Mg Mg"
+                      disabled={registerLoading}
+                    />
+                    {registerErrors.username && <span className="register-form-error">{registerErrors.username}</span>}
+                  </div>
+                  <div className="form-group">
+                    <label>Email <span style={{ color: '#dc3545' }}>*</span></label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={registerFormData.email}
+                      onChange={handleRegisterInputChange}
+                      placeholder="e.g. user@example.com"
+                      disabled={registerLoading}
+                    />
+                    {registerErrors.email && <span className="register-form-error">{registerErrors.email}</span>}
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Password <span style={{ color: '#dc3545' }}>*</span></label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={registerFormData.password}
+                      onChange={handleRegisterInputChange}
+                      placeholder="Enter a secure password"
+                      disabled={registerLoading}
+                    />
+                    {registerErrors.password && <span className="register-form-error">{registerErrors.password}</span>}
+                  </div>
+                  <div className="form-group">
+                    <label>Phone <span style={{ color: '#dc3545' }}>*</span></label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={registerFormData.phone}
+                      onChange={handleRegisterInputChange}
+                      placeholder="e.g. 09123456789"
+                      disabled={registerLoading}
+                    />
+                    {registerErrors.phone && <span className="register-form-error">{registerErrors.phone}</span>}
+                  </div>
+                </div>
+
+                <div className="register-form-section-title">
+                  <i className="bi bi-card-text"></i> Personal Information
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>NRC <span style={{ color: '#dc3545' }}>*</span></label>
+                    <input
+                      type="text"
+                      name="nrc"
+                      value={registerFormData.nrc}
+                      onChange={handleRegisterInputChange}
+                      placeholder="e.g. 12/tatana(N)123456"
+                      disabled={registerLoading}
+                    />
+                    {registerErrors.nrc && <span className="register-form-error">{registerErrors.nrc}</span>}
+                  </div>
+                  <div className="form-group">
+                    <label>Birthday</label>
+                    {/* ===== UPDATED: Native calendar picker =====
+                        - Click → calendar opens
+                        - Click month header → 12-month grid
+                        - Click year header → year grid (min=1950, max=today dynamically) */}
+                    <input
+                      type="date"
+                      name="birthday"
+                      value={registerFormData.birthday}
+                      onChange={handleRegisterInputChange}
+                      min="1950-01-01"
+                      max={getTodayIsoDate()}
+                      disabled={registerLoading}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Township</label>
+                    <input
+                      type="text"
+                      name="township"
+                      value={registerFormData.township}
+                      onChange={handleRegisterInputChange}
+                      placeholder="e.g. Hlaing"
+                      disabled={registerLoading}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Region</label>
+                    <input
+                      type="text"
+                      name="region"
+                      value={registerFormData.region}
+                      onChange={handleRegisterInputChange}
+                      placeholder="e.g. Yangon"
+                      disabled={registerLoading}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Address</label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={registerFormData.address}
+                      onChange={handleRegisterInputChange}
+                      placeholder="e.g. 1/Zizawar Street"
+                      disabled={registerLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="alert alert-info mt-2" style={{ borderRadius: '12px' }}>
+                  <small>
+                    <i className="bi bi-info-circle"></i> New accounts are created with <strong>Pending</strong> status.
+                    You can approve them from the table once registered.
+                  </small>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="discard-btn" onClick={handleCloseAddModal} disabled={registerLoading}>
+                  Cancel
+                </button>
+                <button type="submit" className="action-btn add-btn register-submit-btn" disabled={registerLoading}>
+                  {registerLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-check-lg"></i> Create Shareholder
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
